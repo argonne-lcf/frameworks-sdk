@@ -65,8 +65,8 @@ nightly_wheels:
     - export TORCH_XPU_ARCH_LIST='pvc'
     #- export OCLOC_VERSION=24.39.1 N.B. this doesn't match what is on the system. Let build system get correct version.
     - export MAX_JOBS=48
-    - make triton
-    - python setup.py bdist_wheel --verbose 2>&1 | tee "torch-build-whl-$(date +%Y-%m-%d-%H%M%S).log"
+    - make triton > "torch-build-triton-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
+    - python setup.py bdist_wheel --verbose > "torch-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1 
     - pip install dist/*.whl
     - cd ../
 
@@ -78,7 +78,7 @@ nightly_wheels:
     - pip install -r requirements.txt
     - INTELONEAPIROOT="$ONEAPI_ROOT" MAX_JOBS=48 \
       CC="$(which gcc)" CXX="$(which g++)" \
-      python setup.py bdist_wheel 2>&1 | tee "ipex-build-whl-$(date +%Y-%m-%d-%H%M%S).log"
+      python setup.py bdist_wheel > "ipex-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
     - cd ../
 
@@ -91,15 +91,15 @@ nightly_wheels:
     - pip install -r requirements.txt
     - ONECCL_BINDINGS_FOR_PYTORCH_BACKEND=xpu \
       INTELONEAPIROOT="$ONEAPI_ROOT" USE_SYSTEM_ONECCL=ON COMPUTE_BACKEND=dpcpp \
-      python setup.py bdist_wheel 2>&1 | tee "ccl-build-whl-$(date +%Y-%m-%d-%H%M%S).log"
+      python setup.py bdist_wheel > "ccl-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
     - cd ../
 
     # 5) Build mpi4py
     - git clone https://github.com/mpi4py/mpi4py
     - cd mpi4py
-    - CC=mpicc CXX=mpicxx python setup.py build |& tee build-mpi4py.log
-    - CC=mpicc CXX=mpicxx python setup.py install |& tee install-mpi4py.log
+    - CC=mpicc CXX=mpicxx python setup.py build > "build-mpi4py.log" 2>&1
+    - CC=mpicc CXX=mpicxx python setup.py install > install-mpi4py.log" 2>&1
     - cd ../
 
     # 6) Verify

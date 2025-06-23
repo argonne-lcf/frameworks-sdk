@@ -66,7 +66,7 @@ nightly_wheels:
     #- export OCLOC_VERSION=24.39.1 N.B. this doesn't match what is on the system. Let build system get correct version.
     - export MAX_JOBS=48
     - make triton > "torch-build-triton-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
-    - python setup.py bdist_wheel --verbose > "torch-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1 
+    - python setup.py bdist_wheel --verbose > "torch-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
     - cd ../
 
@@ -75,10 +75,12 @@ nightly_wheels:
     - cd intel-extension-for-pytorch
     - git checkout xpu-main
     - git submodule sync && git submodule update --init --recursive
-    - pip install -r requirements.txt
-    - INTELONEAPIROOT="$ONEAPI_ROOT" MAX_JOBS=48 \
-      CC="$(which gcc)" CXX="$(which g++)" \
-      python setup.py bdist_wheel > "ipex-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
+    #- pip install -r requirements.txt
+    - |
+      INTELONEAPIROOT="$ONEAPI_ROOT" MAX_JOBS=48 \
+        CC="$(which gcc)" CXX="$(which g++)" \
+        python setup.py bdist_wheel \
+      > "ipex-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
     - cd ../
 
@@ -88,10 +90,12 @@ nightly_wheels:
     #FIXME need to checkout c27ded5 or create a patch because the repo version.txt is messed up
     - git checkout c27ded5
     - git submodule sync && git submodule update --init --recursive
-    - pip install -r requirements.txt
-    - ONECCL_BINDINGS_FOR_PYTORCH_BACKEND=xpu \
-      INTELONEAPIROOT="$ONEAPI_ROOT" USE_SYSTEM_ONECCL=ON COMPUTE_BACKEND=dpcpp \
-      python setup.py bdist_wheel > "ccl-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
+    #- pip install -r requirements.txt
+    - |
+      ONECCL_BINDINGS_FOR_PYTORCH_BACKEND=xpu \
+        INTELONEAPIROOT="$ONEAPI_ROOT" USE_SYSTEM_ONECCL=ON COMPUTE_BACKEND=dpcpp \
+        python setup.py bdist_wheel \
+      > "ccl-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
     - cd ../
 

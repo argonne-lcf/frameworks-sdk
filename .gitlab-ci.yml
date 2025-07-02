@@ -32,9 +32,6 @@ nightly_wheels:
     - module load frameworks || true
     - conda deactivate || true
   script:
-    # prepare remote dirs
-    - mkdir -p "${REMOTE_ROOT}/logs" "${REMOTE_ROOT}/wheels"
-
     # 1) Setup a fresh Python 3.12 env in /tmp
     - export ENV_NAME="nightly-$(date +%Y-%m-%d)"
     - export BUILD_DIR="${BUILD_ROOT}/${ENV_NAME}"
@@ -72,9 +69,6 @@ nightly_wheels:
     - make triton > "torch-build-triton-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - python setup.py bdist_wheel --verbose > "torch-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
-    # copy PyTorch logs & wheels
-    - cp *.log "${REMOTE_ROOT}/logs/"
-    - cp dist/*.whl "${REMOTE_ROOT}/wheels/"
     - cd ../
 
     # 3) Build Intel Extension for PyTorch
@@ -89,9 +83,6 @@ nightly_wheels:
         python setup.py bdist_wheel \
       > "ipex-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
-    # copy IPEX logs & wheels
-    - cp *.log "${REMOTE_ROOT}/logs/"
-    - cp dist/*.whl "${REMOTE_ROOT}/wheels/"
     - cd ../
 
     # 4) Build oneCCL bindings
@@ -107,9 +98,6 @@ nightly_wheels:
         python setup.py bdist_wheel \
       > "ccl-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
-    # copy CCL logs & wheels
-    - cp *.log "${REMOTE_ROOT}/logs/"
-    - cp dist/*.whl "${REMOTE_ROOT}/wheels/"
     - cd ../
 
     # 5) Build mpi4py
@@ -117,9 +105,6 @@ nightly_wheels:
     - cd mpi4py
     - CC=mpicc CXX=mpicxx python setup.py bdist_wheel > "mpi4py-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
     - pip install dist/*.whl
-    # copy mpi4py logs & wheels
-    - cp *.log "${REMOTE_ROOT}/logs/"
-    - cp dist/*.whl "${REMOTE_ROOT}/wheels/"
     - cd ../
 
     # 6) Verify
@@ -137,6 +122,12 @@ nightly_wheels:
     # 7) Collect artifacts
     - mkdir -p artifacts
     - find . -type f \( -name "*.whl" -o -name "*.log" \) -exec cp --parents \{\} artifacts/ \; || true
+
+  after_script:
+    # 8) Copy logs and wheels
+    - mkdir -p "${REMOTE_ROOT}/logs" "${REMOTE_ROOT}/wheels"
+    - find "${BUILD_DIR}" -type f -name '*.log'   -exec cp {} "${REMOTE_ROOT}/logs/"   \; || true
+    - find "${BUILD_DIR}" -type f -name '*.whl'   -exec cp {} "${REMOTE_ROOT}/wheels/" \; || true
 
   artifacts:
     name: "nightly-wheels-${ENV_NAME}"

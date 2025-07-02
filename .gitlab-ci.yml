@@ -26,12 +26,14 @@ nightly_wheels:
   variables:
     ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
   before_script:
+    - echo "running before_script on $(hostname)"
     # fail fast
     - set -e
     # load current frameworks module 
     - module load frameworks || true
     - conda deactivate || true
   script:
+    - echo "running script on $(hostname)"
     # 1) Setup a fresh Python 3.12 env in /tmp
     - export ENV_NAME="nightly-$(date +%Y-%m-%d)"
     - export BUILD_DIR="${BUILD_ROOT}/${ENV_NAME}"
@@ -124,6 +126,7 @@ nightly_wheels:
     - find . -type f \( -name "*.whl" -o -name "*.log" \) -exec cp --parents \{\} artifacts/ \; || true
 
   after_script:
+    - echo "running after_script on $(hostname)"
     # 8) Copy logs and wheels
     - mkdir -p "${REMOTE_ROOT}/logs" "${REMOTE_ROOT}/wheels"
     - find "${BUILD_DIR}" -type f -name '*.log'   -exec cp {} "${REMOTE_ROOT}/logs/"   \; || true

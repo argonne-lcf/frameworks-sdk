@@ -27,13 +27,52 @@ nightly_wheels:
     ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
   before_script:
     - echo "running before_script on $(hostname)"
-    # fail fast
-    - set -e
+
+    #####################################################################
+    # Strict mode + robust traps ----------------------------------------
+    #####################################################################
+    - |
+      # Fail fast, but propagate errors through functions and pipelines
+      set -Eeuo pipefail        # -E  -->  ERR propagates out of functions
+
+      # -----------------------------------------------------------------
+      # Function to copy logs and wheels from compute node to Lustre ----
+      # -----------------------------------------------------------------
+      copy_out () {
+          rc=$?
+          echo ">>> Copying logs and wheels (exit=$rc) on $(hostname)"
+          # guard in case of fail before BUILD_DIR exists
+          [[ -d "${BUILD_DIR:-}" ]] || { echo "BUILD_DIR not available"; return; }
+
+          mkdir -p "${REMOTE_ROOT}/logs" "${REMOTE_ROOT}/wheels"
+
+          # Never let copy errors abort the trap itself
+          find "$BUILD_DIR" -name '*.log' -exec cp {} "${REMOTE_ROOT}/logs/"   \; || true
+          find "$BUILD_DIR" -name '*.whl' -exec cp {} "${REMOTE_ROOT}/wheels/" \; || true
+      }
+
+      # -----------------------------------------------------------------
+      # Helper to print which command died ------------------------------
+      # -----------------------------------------------------------------
+      export PROMPT_COMMAND='LAST_CMD=$BASH_COMMAND'
+      on_err () {
+          rc=$?
+          echo "✘ FAILED: \"$LAST_CMD\" (exit=$rc)"
+          copy_out       # still copy logs to Lustre on error
+          exit "$rc"
+      }
+
+      # Run copy_out on *any* exit; run on_err on real errors/signals
+      trap copy_out EXIT
+      trap on_err  ERR INT TERM
+    #####################################################################
+    
     # load current frameworks module 
     - module load frameworks || true
     - conda deactivate || true
   script:
     - echo "running script on $(hostname)"
+
     # 1) Setup a fresh Python 3.12 env in /tmp
     - export ENV_NAME="nightly-$(date +%Y-%m-%d)"
     - export BUILD_DIR="${BUILD_ROOT}/${ENV_NAME}"
@@ -127,10 +166,7 @@ nightly_wheels:
 
   after_script:
     - echo "running after_script on $(hostname)"
-    # 8) Copy logs and wheels
-    - mkdir -p "${REMOTE_ROOT}/logs" "${REMOTE_ROOT}/wheels"
-    - find "${BUILD_DIR}" -type f -name '*.log'   -exec cp {} "${REMOTE_ROOT}/logs/"   \; || true
-    - find "${BUILD_DIR}" -type f -name '*.whl'   -exec cp {} "${REMOTE_ROOT}/wheels/" \; || true
+    - echo "nothing to do for now..."
 
   artifacts:
     name: "nightly-wheels-${ENV_NAME}"

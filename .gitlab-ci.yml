@@ -27,7 +27,22 @@ nightly_wheels:
     ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
   before_script:
     - echo "running before_script on $(hostname)"
+    
+    # load current frameworks module 
+    - module load frameworks || true
+    - conda deactivate || true
+  script:
+    - echo "running script on $(hostname)"
 
+
+
+    # 1) Setup a fresh Python 3.12 env in /tmp
+    - export ENV_NAME="nightly-$(date +%Y-%m-%d)"
+    - export BUILD_DIR="${BUILD_ROOT}/${ENV_NAME}"
+    - mkdir -p "${BUILD_DIR}" && cd "${BUILD_DIR}"
+    - conda create -y -q --prefix="${BUILD_DIR}" python=3.12
+    - conda activate "${BUILD_DIR}"
+    
     #####################################################################
     # Strict mode + robust traps ----------------------------------------
     #####################################################################
@@ -66,19 +81,6 @@ nightly_wheels:
       trap copy_out EXIT
       trap on_err  ERR INT TERM
     #####################################################################
-    
-    # load current frameworks module 
-    - module load frameworks || true
-    - conda deactivate || true
-  script:
-    - echo "running script on $(hostname)"
-
-    # 1) Setup a fresh Python 3.12 env in /tmp
-    - export ENV_NAME="nightly-$(date +%Y-%m-%d)"
-    - export BUILD_DIR="${BUILD_ROOT}/${ENV_NAME}"
-    - mkdir -p "${BUILD_DIR}" && cd "${BUILD_DIR}"
-    - conda create -y -q --prefix="${BUILD_DIR}" python=3.12
-    - conda activate "${BUILD_DIR}"
 
     # 2) Build PyTorch
     - git clone https://github.com/pytorch/pytorch

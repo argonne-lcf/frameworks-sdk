@@ -1,0 +1,85 @@
+# Python dependency packages for PyTorch-2.8.0 and IPEX-2.8.10 
+# and TorchVision-0.23.0
+# Removed cmake as we want to depend on system-wide installation
+astunparse
+expecttest>=0.3.0
+filelock
+fsspec
+hypothesis
+jinja2
+lintrunner ; platform_machine != "s390x"
+networkx
+ninja
+## This is a special requirement, as I built my PyTorch wheel with numpy==2.0.2
+numpy==2.0.2
+optree>=0.13.0
+packaging
+psutil
+pytest
+pyyaml
+requests
+ruamel.yaml==0.18.6
+scipy>=1.8.0
+## PyTorch wants setuptools<=75.8.2
+## IPEX wants setuptools==72.1.0
+## pytorch-triton-xpu wants setuptools>=70.2.0
+setuptools==72.1.0
+sympy>=1.13.3
+types-dataclasses
+typing_extensions
+## PyTorch wants a specific version of typing-extensions, IPEX has no restrictions
+typing-extensions>=4.10.0
+## TorchVision specific requirement
+pillow>=5.3.0,!=8.3.*
+## pytroch-triton-xpu requires this, for vLLM we need to install it separately
+pybind11>=2.13.1
+## h5py specific dependency
+cython==3.0.11
+pkgconfig==1.5.5
+## torchdata specific requirements, the < 2.0.0 is future proofing for the 
+## torchtune dev setup
+urllib3 >= 1.25, < 2.0.0
+## torchao specific requirements 
+## (These we are asking pip to resolve the dependency for us, we well have a 
+## list of manifests with this one)
+## They are mentioned in torchao_0.12.0_xpu_separate_requirements.txt
+## That should be installed after this file and all torch-ecosystem built
+## Otherwise a whole bunch of Nvidia-CUDA stuff comes in!!
+## torchao specific requirements
+## (These we are asking pip to resolve the dependency for us, we well have a
+## list of manifests with this one)
+unittest-xml-reporting
+parameterized
+transformers
+sentencepiece
+bitsandbytes
+matplotlib
+pandas
+fire
+tabulate
+tiktoken
+blobfile
+lm_eval
+diskcache
+pycocotools
+tqdm
+importlib_metadata
+ruff==0.11.6 ## This was fixed in the repository git hub
+pre-commit
+## These are torchtune-0.6.1 specific requirements, comes from the
+## https://github.com/pytorch/torchtune/blob/v0.6.1/pyproject.toml, and then
+## parsed against the torchao_0.12.0 separate requirements file and the
+## h5py_3.14.0 main requirements file
+#datasets ## This could be redundant, 3.6.0 brought in by torchao
+huggingface_hub[hf_transfer]
+safetensors
+kagglehub
+#tokenizers ## This could be redundant, 0.21.4 brought in by torchao
+omegaconf
+comet_ml>=3.44.2
+mlflow
+pytest-cov
+pytest-mock
+pytest-integration
+tensorboard
+wandb

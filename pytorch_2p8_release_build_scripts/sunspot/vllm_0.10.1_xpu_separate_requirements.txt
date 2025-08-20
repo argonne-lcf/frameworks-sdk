@@ -1,0 +1,49 @@
+## These are the separate dependencies for vLLM/0.10.1 -- latest stable as of 08/20/2025 (3 days old)
+## These are compiled from https://github.com/vllm-project/vllm/blob/v0.10.1/requirements/common.txt
+## and https://github.com/vllm-project/vllm/blob/v0.10.1/requirements/xpu.txt
+## After compilation is compared against torchdata_0.11.0 requirements file along with
+## torchao_0.12.0 and torchtune_0.6.1 separate requirements files minimize duplications
+## From the main repo vllm requirements files, we have removed all the Intel-xpu
+## based packages, and cmake. outlines_core == 0.2.10 has the tendency of bringing
+## in lots of Nvidia packages, so we install it separately with --no-deps flag
+regex
+cachetools
+blake3
+py-cpuinfo
+fastapi[standard] >= 0.115.0
+aiohttp
+openai >= 1.99.1
+pydantic >= 2.10
+prometheus_client >= 0.18.0
+prometheus-fastapi-instrumentator >= 7.0.0
+lm-format-enforcer >= 0.10.11, < 0.11
+llguidance >= 0.7.11, < 0.8.0; platform_machine == "x86_64" or platform_machine == "arm64" or platform_machine == "aarch64"
+outlines_core == 0.2.10
+lark == 1.2.2
+xgrammar == 0.1.21; platform_machine == "x86_64" or platform_machine == "aarch64" or platform_machine == "arm64"
+partial-json-parser
+pyzmq >= 25.0.0
+msgspec
+gguf >= 0.13.0
+mistral_common[image,audio] >= 1.8.2
+opencv-python-headless >= 4.11.0
+six>=1.16.0; python_version > '3.11'
+einops
+compressed-tensors == 0.10.2
+depyf==0.19.0
+cloudpickle
+watchfiles
+python-json-logger
+pybase64
+cbor2
+setproctitle
+openai-harmony >= 0.0.3
+ray>=2.9
+#cmake>=3.26.1
+setuptools-scm>=8
+wheel
+#datasets ## comes in through torchao/torchtune interlinked dependency
+numba == 0.60.0
+## Squeezing in the two torchtitan dependencies
+tomli-w >= 1.1.0
+tyro

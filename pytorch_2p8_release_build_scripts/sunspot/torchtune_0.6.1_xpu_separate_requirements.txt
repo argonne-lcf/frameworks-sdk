@@ -1,0 +1,17 @@
+## These are torchtune-0.6.1 specific requirements, comes from the 
+## https://github.com/pytorch/torchtune/blob/v0.6.1/pyproject.toml, and then
+## parsed against the torchao_0.12.0 separate requirements file and the 
+## h5py_3.14.0 main requirements file
+#datasets ## This could be redundant, 3.6.0 brought in by torchao
+huggingface_hub[hf_transfer]
+safetensors
+kagglehub
+#tokenizers ## This could be redundant, 0.21.4 brought in by torchao
+omegaconf
+comet_ml>=3.44.2
+mlflow
+pytest-cov
+pytest-mock
+pytest-integration
+tensorboard
+wandb

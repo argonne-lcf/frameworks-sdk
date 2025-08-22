@@ -1,0 +1,5 @@
+# These are the leftover dependencies for a couple legacy NRE applications
+# This comes from Julia's testing 
+hydra-core
+tensorboardX
+sacred

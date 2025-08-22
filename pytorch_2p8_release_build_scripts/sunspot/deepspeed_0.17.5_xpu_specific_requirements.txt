@@ -1,0 +1,19 @@
+## These are the deepspeed-0.17.5 specific requirements that are not coming 
+## from any other packages
+## removed qtorch -- as it is an optional dependency
+hjson
+msgpack
+neural-compressor==2.1.0
+diffusers>=0.25.0
+google
+clang-format==18.1.3
+deepspeed-kernels ; sys_platform == 'linux'
+docutils<0.18
+future
+pytest-forked
+pytest-randomly
+pytest-xdist
+recommonmark
+sphinx
+sphinx-rtd-theme
+xgboost

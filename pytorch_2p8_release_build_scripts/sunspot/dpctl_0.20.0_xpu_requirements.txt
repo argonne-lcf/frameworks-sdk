@@ -1,0 +1,4 @@
+## Specific requirements for dpctl_0.20.0
+## From Riccardo and https://github.com/IntelPython/dpctl/blob/master/pyproject.toml
+scikit-build>=0.17.0
+versioneer==0.29

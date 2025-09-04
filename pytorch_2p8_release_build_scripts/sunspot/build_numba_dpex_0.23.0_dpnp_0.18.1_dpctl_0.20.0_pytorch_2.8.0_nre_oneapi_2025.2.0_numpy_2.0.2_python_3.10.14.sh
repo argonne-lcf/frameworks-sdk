@@ -10,7 +10,7 @@ export HTTPS_PROXY=http://proxy.alcf.anl.gov:3128
 export http_proxy=http://proxy.alcf.anl.gov:3128
 #
 CONDA_ENV_INSTALL_DIR=/lus/tegu/projects/datasets/software/wheelforge/envs/conda_envs
-CONDA_ENV_NAME=numba_dpex_0.23.0_dpnp_0.18.1_dpctl_0.20.0_pytorch_2.8.0_nre_oneapi_2025.2.0_numpy_2.0.2_python3p10p14_RC2
+CONDA_ENV_NAME=numba_dpex_alcf_0.23.0_dpnp_0.18.1_dpctl_0.20.0_pytorch_2.8.0_nre_oneapi_2025.2.0_numpy_2.0.2_python3p10p14_RC4
 
 source /opt/aurora/25.190.0/spack/unified/0.10.0/install/linux-sles15-x86_64/gcc-13.3.0/miniforge3-24.3.0-0-gfganax/bin/activate
 
@@ -48,7 +48,7 @@ module load hdf5
 ## Scikit-learn specific
 export MPIROOT=$MPI_ROOT
 
-TMP_WORK=/lus/tegu/projects/datasets/software/wheelforge/repositories/numba_dpex_0.23.0_rel_08_23_2025
+TMP_WORK=/lus/tegu/projects/datasets/software/wheelforge/repositories/alcf_numba_dpex_09_03_2025
 cd $TMP_WORK
 
 LOCAL_WHEEL_LOC=/lus/tegu/projects/datasets/software/wheelhouse
@@ -127,11 +127,12 @@ pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/torchdat
 
 mkdir -p ${CONDA_ENV_NAME}
 
-#git clone git@github.com:IntelPython/numba-dpex.git
+#git clone git@github.com:argonne-lcf/numba-dpex.git
 cd numba-dpex/
-#git checkout 0.23.0
+#git checkout main #(redundant)
 #git submodule sync && git submodule update --init --recursive
 # Make changes to numba_dpex/__init__.py L44 replace *DPCTLSyclInterface.so  with *libDPCTLSyclInterface.so
+# So that it works with dpctl/0.20.0
 
 export CXX=$(which g++)
 export CC=$(which gcc)
@@ -211,7 +212,7 @@ done
 
 pip uninstall nvidia-nccl-cu12 -y
 
-pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/deepspeed-*.whl
+pip install --no-deps --no-cache-dir deepspeed==0.17.5 
 pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/scikit_learn_intelex-*.whl
 
 pip install --no-cache-dir -r ${LOCAL_WHEEL_LOC}/dpctl_0.20.0_xpu_requirements.txt
@@ -232,7 +233,18 @@ pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/dpnp-*.w
 ## https://github.com/IntelPython/dpcpp-llvm-spirv/tree/main
 ## Modified to match Aurora compute image. Courtesy: Christopher Chan-Nui
 ## We will source, maintain and version control this modified package
-pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/aurora_dpcpp_llvm_spirv-*.whl
+#pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/aurora_dpcpp_llvm_spirv-*.whl
+## It seems the aurora_dpcpp_llvm_spirv is causing problem. Falling back to dpcpp_llvm_spirv==2024.2.0
+pip install --no-deps --no-cache-dir dpcpp_llvm_spirv==2024.2.0
+
+for pkg in "${rm_conda_pkgs[@]}"
+do
+    conda uninstall $pkg \
+        --prefix ${ENVPREFIX} \
+        --force \
+        --yes
+    pip uninstall $pkg -y
+done
 
 
 unset CXX
@@ -241,14 +253,23 @@ python setup.py clean --all
 CXX=$(which dpcpp) python setup.py bdist_wheel --dist-dir ${TMP_WORK}/${CONDA_ENV_NAME} 2>&1 | tee ${TMP_WORK}/${CONDA_ENV_NAME}/"numba-dpex-build-whl-$(tstamp).log"
 
 echo ""
-echo "Completed build numba-dpex/0.23.0 wheel with dpnp/0.18.1 and dpctl/0.20.0 and mpi4py/4.1.0 and oneapi/2025.2.0 with numpy/2.0.2 for PyTorch-2.8.0 with IPEX-2.8.10" 
+echo "Completed build alcf-numba-dpex/0.23.0 wheel with dpnp/0.18.1 and dpctl/0.20.0 and mpi4py/4.1.0 and oneapi/2025.2.0 with numpy/2.0.2 for PyTorch-2.8.0 with IPEX-2.8.10" 
 echo ""
 
 NUMBA_DPEX_WHEEL_LOC=${TMP_WORK}/${CONDA_ENV_NAME}
 pip install --no-deps --no-cache-dir --force-reinstall $NUMBA_DPEX_WHEEL_LOC/numba_dpex-*.whl 2>&1 | tee ${TMP_WORK}/${CONDA_ENV_NAME}/"numba-dpex-install-$(tstamp).log"
 echo ""
-echo "Finished installing the numba-dpex/0.23.0 wheel and dependencies"
+echo "Finished installing the alcf-numba-dpex/0.23.0 wheel and dependencies"
 echo ""
+
+for pkg in "${rm_conda_pkgs[@]}"
+do
+    conda uninstall $pkg \
+        --prefix ${ENVPREFIX} \
+        --force \
+        --yes
+    pip uninstall $pkg -y
+done
 
 echo ""
 echo "Writing the package lists"

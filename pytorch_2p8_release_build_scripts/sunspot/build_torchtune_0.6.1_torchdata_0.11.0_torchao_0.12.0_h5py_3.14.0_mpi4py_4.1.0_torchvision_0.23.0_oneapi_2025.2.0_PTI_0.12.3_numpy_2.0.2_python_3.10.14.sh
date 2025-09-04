@@ -10,7 +10,7 @@ export HTTPS_PROXY=http://proxy.alcf.anl.gov:3128
 export http_proxy=http://proxy.alcf.anl.gov:3128
 #
 CONDA_ENV_INSTALL_DIR=/lus/tegu/projects/datasets/software/wheelforge/envs/conda_envs
-CONDA_ENV_NAME=torchtune_0.6.1_torchdata_0.11.0_torchao_0.12.0_h5py_3.14.0_mpi4py_4.1.0_torchvision_0.23.0_oneapi_2025.2.0_pti_0.12.3_numpy_2.0.2_python3p10p14
+CONDA_ENV_NAME=torchtune_0.6.1_torchdata_0.11.0_torchao_0.12.0_h5py_3.14.0_mpi4py_4.1.0_torchvision_0.23.0_oneapi_2025.2.0_pti_0.12.3_numpy_2.0.2_python3p10p14_RC2
 
 source /opt/aurora/25.190.0/spack/unified/0.10.0/install/linux-sles15-x86_64/gcc-13.3.0/miniforge3-24.3.0-0-gfganax/bin/activate
 

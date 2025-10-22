@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+REAL="/opt/aurora/25.190.0/spack/unified/0.10.1/install/linux-sles15-x86_64/gcc-13.3.0/llvm-develop-git.5708851-4ulhk4d/bin/llvm-config"
+if [[ "$1" == "--version" ]]; then
+  echo 22.0.0
+  exit 0
+fi
+exec "$REAL" "$@"

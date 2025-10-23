@@ -1,0 +1,77 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index fc5b523da..aa25a23c2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -255,10 +255,10 @@ if(TRITON_BUILD_PYTHON_MODULE)
+ 
+     # LLVM
+     LLVMPasses
+-    LLVMNVPTXCodeGen
++    #LLVMNVPTXCodeGen
+     # LLVMNVPTXAsmPrinter
+-    LLVMAMDGPUCodeGen
+-    LLVMAMDGPUAsmParser
++    #LLVMAMDGPUCodeGen
++    #LLVMAMDGPUAsmParser
+ 
+     Python3::Module
+     pybind11::headers
+@@ -303,6 +303,13 @@ if(TRITON_BUILD_PYTHON_MODULE)
+                   ${PYTHON_SRC_PATH}/interpreter.cc
+                   ${PYTHON_SRC_PATH}/llvm.cc
+                   ${PYTHON_SRC_PATH}/specialize.cc)
++  # Add weak no-op vendor init shims so import doesn't fail if vendor plugins
++  # were not built/linked.
++  if (TARGET triton)
++    target_sources(triton PRIVATE python/src/vendor_init_shims.cc)
++  else()
++    message(FATAL_ERROR "Expected target 'triton' to exist before adding shims")
++  endif()
+ 
+   # Link triton with its dependencies
+   target_link_libraries(triton PRIVATE ${TRITON_LIBRARIES})
+
+## Add this file vendor_init_shims.cc in the intel-xpu-backend-for-triton/python/src directory
+# triton_xpu_git0a08c5a_10_15_2025/intel-xpu-backend-for-triton/python/src> cat vendor_init_shims.cc
+##
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
+
+__attribute__((visibility("default")))
+void init_triton_amd(pybind11::module_ &&) {}
+
+__attribute__((visibility("default")))
+void init_triton_nvidia(pybind11::module_ &&) {}
+##
+
+## Need to patch third_party/nvidia/CMakelists.txt
+diff --git a/third_party/nvidia/CMakeLists.txt b/third_party/nvidia/CMakeLists.txt
+index ff1ea248d..928be1a3f 100644
+--- a/third_party/nvidia/CMakeLists.txt
++++ b/third_party/nvidia/CMakeLists.txt
+@@ -2,7 +2,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
+ add_subdirectory(include)
+ add_subdirectory(lib)
+-if(TRITON_BUILD_PYTHON_MODULE)
++option(TRITON_BUILD_NVIDIA_PLUGIN "Build NVIDIA Python plugin" OFF)
++if(TRITON_BUILD_PYTHON_MODULE AND TRITON_BUILD_NVIDIA_PLUGIN)
+   add_triton_plugin(TritonNVIDIA ${CMAKE_CURRENT_SOURCE_DIR}/triton_nvidia.cc LINK_LIBS TritonNVIDIAGPUToLLVM NVGPUToLLVM)
+   target_link_libraries(TritonNVIDIA PRIVATE Python3::Module pybind11::headers)
+ endif()
+ 
+## third_party/amd/CMakelists.txt
+diff --git a/third_party/amd/CMakeLists.txt b/third_party/amd/CMakeLists.txt
+index c8e9e6f0e..116f50377 100644
+--- a/third_party/amd/CMakeLists.txt
++++ b/third_party/amd/CMakeLists.txt
+@@ -2,7 +2,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
+ add_subdirectory(include)
+ add_subdirectory(lib)
+-if(TRITON_BUILD_PYTHON_MODULE)
++option(TRITON_BUILD_AMD_PLUGIN "Build AMD Python plugin" OFF)
++if(TRITON_BUILD_PYTHON_MODULE AND TRITON_BUILD_AMD_PLUGIN)
+   find_package(LLD REQUIRED CONFIG PATHS "${LLD_DIR}" NO_DEFAULT_PATH)
+   include_directories(${LLD_INCLUDE_DIRS})
+   message(STATUS "Found LLD distro-package @ ${LLD_DIR} and LLD include dirs @ ${LLD_INCLUDE_DIRS}")

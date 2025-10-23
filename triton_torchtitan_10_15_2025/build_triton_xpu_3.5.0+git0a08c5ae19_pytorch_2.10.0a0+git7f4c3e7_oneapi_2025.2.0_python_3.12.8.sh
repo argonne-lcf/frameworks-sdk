@@ -172,7 +172,15 @@ export TRITON_BUILD_PROTON_XPU=OFF
 #export TRITON_PARALLEL_LINK_JOBS=16
 export TRITON_BUILD_WITH_CCACHE=OFF
 
-export TRITON_BACKENDS_TUPLE="(intel)"
+export TRITON_BUILD_NVIDIA_PLUGIN=OFF
+export TRITON_BUILD_AMD_PLUGIN=OFF
+
+export TRITON_APPEND_CMAKE_ARGS="
+  -DLLVM_DIR=$LLVM_SYSPATH/lib/cmake/llvm
+  -DMLIR_DIR=$LLVM_SYSPATH/lib/cmake/mlir
+  -DLLD_DIR=$LLVM_SYSPATH/lib/cmake/lld
+  -DLLVM_SYSPATH=$LLVM_SYSPATH
+"
 
 #echo "== LLVM_ROOT_DIR =="
 #echo $LLVM_ROOT_DIR
@@ -195,7 +203,7 @@ done
 DEBUG=1 python setup.py bdist_wheel --dist-dir ${TMP_WORK}/${CONDA_ENV_NAME} 2>&1 | tee ${TMP_WORK}/${CONDA_ENV_NAME}/"triton_xpu-build-whl-$(tstamp).log"
 echo "Finished building triton_xpu_3.5.0+0a08c5ae19 for PyTorch 2.10.0a0+git7f4c3e7 wheel with oneapi/2025.2.0"
 LOCAL_WHEEL_LOC=${TMP_WORK}/${CONDA_ENV_NAME}
-pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/triton_xpu-*.whl 2>&1 | tee ${TMP_WORK}/${CONDA_ENV_NAME}/"triton_xpu-install-$(tstamp).log"
+pip install --no-deps --no-cache-dir --force-reinstall $LOCAL_WHEEL_LOC/triton-*.whl 2>&1 | tee ${TMP_WORK}/${CONDA_ENV_NAME}/"triton_xpu-install-$(tstamp).log"
 echo "Finished installing the wheel and dependencies"
 
 echo ""

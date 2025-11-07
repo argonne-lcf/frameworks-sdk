@@ -1,0 +1,71 @@
+## These are the separate dependencies for vLLM/tree/6e97eccf5dd5036e26d63141d2bc1a9ea17a2cc8 -- latest stable as of 08/20/2025 (3 days old)
+## These are compiled from https://github.com/vllm-project/vllm/tree/6e97eccf5dd5036e26d63141d2bc1a9ea17a2cc8/requirements/common.txt
+## and https://github.com/vllm-project/vllm/blob/6e97eccf5dd5036e26d63141d2bc1a9ea17a2cc8/requirements/xpu.txt
+## After compilation is compared against PyTorch-2.9.1, and IPEX-2.9.10+xpu  requirements file along with
+## torchvision_0.24.0 and triton-xpu_3.5.0 requirements files minimize duplications
+## From the main repo vllm requirements files, we have removed all the Intel-xpu
+## based packages, and cmake. outlines_core == 0.2.11 has the tendency of bringing
+## in lots of Nvidia packages, so we install it separately with --no-deps flag
+##
+regex # Replace re for higher-performance regex matching
+cachetools
+psutil
+sentencepiece  # Required for LLaMA tokenizer.
+## numpy we set it 2.3.4, because of our PyTorch building block
+requests >= 2.26.0
+tqdm
+blake3
+py-cpuinfo
+transformers >= 4.56.0, < 5
+tokenizers >= 0.21.1  # Required for fast incremental detokenization.
+protobuf # Required by LlamaTokenizer.
+fastapi[standard] >= 0.115.0 # Required by FastAPI's form models in the OpenAI API server's audio transcriptions endpoint.
+aiohttp
+openai >= 1.99.1  # For Responses API with reasoning content
+pydantic >= 2.12.0
+prometheus_client >= 0.18.0
+# pillow  # Required for image processing ## We have this from torchvision
+prometheus-fastapi-instrumentator >= 7.0.0
+tiktoken >= 0.6.0  # Required for DBRX tokenizer
+lm-format-enforcer == 0.11.3
+llguidance >= 0.7.11, < 0.8.0; platform_machine == "x86_64" or platform_machine == "arm64" or platform_machine == "aarch64"
+# outlines_core == 0.2.11, will do it separately with --no-deps
+# required for outlines backend disk cache
+diskcache == 5.6.3
+lark == 1.2.2
+xgrammar == 0.1.25; platform_machine == "x86_64" or platform_machine == "aarch64" or platform_machine == "arm64"
+typing_extensions >= 4.10
+filelock >= 3.16.1 # need to contain https://github.com/tox-dev/filelock/pull/317
+partial-json-parser # used for parsing partial JSON outputs
+pyzmq >= 25.0.0
+msgspec
+gguf >= 0.13.0
+mistral_common[image,audio] >= 1.8.5
+opencv-python-headless >= 4.11.0    # required for video IO
+pyyaml
+six>=1.16.0; python_version > '3.11' # transitive dependency of pandas that needs to be the latest version for python 3.12
+setuptools>=77.0.3,<80; python_version > '3.11' # Setuptools is used by triton, we need to ensure a modern version is installed for 3.12+ so that it does not try to import distutils, which was removed in 3.12
+einops # Required for Qwen2-VL.
+compressed-tensors == 0.12.2 # required for compressed-tensors
+depyf==0.20.0 # required for profiling and debugging with compilation config
+cloudpickle # allows pickling lambda functions in model_executor/models/registry.py
+watchfiles # required for http server to monitor the updates of TLS files
+python-json-logger # Used by logging as per examples/others/logging_configuration.md
+scipy # Required for phi-4-multimodal-instruct
+ninja # Required for xgrammar, rocm, tpu, xpu
+pybase64 # fast base64 implementation
+cbor2 # Required for cross-language serialization of hashable objects
+setproctitle # Used to set process names for better debugging and monitoring
+openai-harmony >= 0.0.3  # Required for gpt-oss
+anthropic == 0.71.0
+##
+## From requirements/xpu.txt
+ray>=2.9
+#cmake>=3.26.1
+packaging>=24.2
+setuptools-scm>=8
+setuptools>=77.0.3,<80.0.0 ## IPEX sits at 78.1.1 (11/06/2025)
+wheel
+jinja2>=3.1.6
+datasets # for benchmark scripts
+numba == 0.61.2 # Required for N-gram speculative decoding

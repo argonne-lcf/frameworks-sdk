@@ -23,7 +23,7 @@ variables:
 
 nightly_wheels:
   stage: nightly_build
-  extends: .aurora-batch-runner
+  extends: .aurora-shell-runner
   # scheduler parameters
   variables:
     ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"

@@ -1,9 +1,11 @@
 #!/bin/sh
 
-# 1) Pull source
-# TODO Build in a tmpdir
-git clone https://github.com/pytorch/pytorch
-git submodule sync && git submodule update --init --recursive
+source ../ci-lib.sh
+
+# 1) Pull source and gen build environment
+BUILD_DIR="$(gen_build_dir_with_git 'https://github.com/pytorch/pytorch')"
+
+setup_build_env
 
 # 2) Set PyTorch build configuration
 export CC="$(which gcc)" CXX="$(which g++)"
@@ -29,7 +31,9 @@ export TORCH_XPU_ARCH_LIST='pvc'
 export MAX_JOBS=24
 
 # 3) Build
-uv build --wheel pytorch
+build_bdist_wheel "pytorch"
+
+cleanup_build_dir "$BUILD_DIR"
 
 # 4) Verify
 # TODO separate build from tests/validation

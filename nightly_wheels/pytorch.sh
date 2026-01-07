@@ -3,8 +3,7 @@
 source ../ci-lib.sh
 
 # 1) Pull source and gen build environment
-BUILD_DIR="$(gen_build_dir_with_git 'https://github.com/pytorch/pytorch')"
-
+gen_build_dir_with_git "https://github.com/pytorch/pytorch"
 setup_build_env
 
 # 2) Set PyTorch build configuration
@@ -33,7 +32,9 @@ export MAX_JOBS=24
 # 3) Build
 build_bdist_wheel "pytorch"
 
-cleanup_build_dir "$BUILD_DIR"
+# 4) Cleanup
+# TODO archive artifacts!
+cleanup_build_dir
 
 # 4) Verify
 # TODO separate build from tests/validation

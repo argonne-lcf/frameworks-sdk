@@ -21,16 +21,8 @@ setup_build_env() {
 
 # Generates a tmpdir and pulls a Git repo.
 gen_build_dir_with_git() {
-    BUILD_DIR="$(mktemp -d)"
-    pushd "$BUILD_DIR"
-
-    # TODO shallow clone this!
-    git clone "$@"
-    pushd "$(basename $_ .git)"
-    git submodule update --init --recursive
-    popd
-
-    echo "$BUILD_DIR"
+    pushd "$(mktemp -d)"
+    git clone --depth=1 --recurse-submodules "$@"
 }
 
 # Build a bdist wheel from a source directory.
@@ -40,8 +32,9 @@ build_bdist_wheel() {
 
 # Cleans up the given build directory.
 cleanup_build_dir() {
+    BUILD_DIR="$PWD"
     popd
-    rm -rf "$1"
+    rm -rf "$BUILD_DIR"
 }
 
 # vim: ts=4:sw=4:expandtab

@@ -2,20 +2,20 @@
 
 # Loads the necessary environment for component builds.
 setup_build_env() {
-    module restore
-    module unload oneapi mpich
-    module use /soft/compilers/oneapi/2025.1.3/modulefiles
-    module use /soft/compilers/oneapi/nope/modulefiles
-    module add mpich/nope/develop-git.6037a7a
-    module load cmake
+    module reset
+    # module unload oneapi mpich
+    # module use /soft/compilers/oneapi/2025.1.3/modulefiles
+    # module use /soft/compilers/oneapi/nope/modulefiles
+    # module add mpich/nope/develop-git.6037a7a
+    # module load cmake
 
     # TODO: are these needed?
-    unset CMAKE_ROOT
-    export A21_SDK_PTIROOT_OVERRIDE=/home/cchannui/debug5/pti-gpu-test/tools/pti-gpu/d5c2e2e
-    module add oneapi/public/2025.1.3
+    # unset CMAKE_ROOT
+    # export A21_SDK_PTIROOT_OVERRIDE=/home/cchannui/debug5/pti-gpu-test/tools/pti-gpu/d5c2e2e
+    # module add oneapi/public/2025.1.3
     #======================================================
     # [2025-07-06][NOTE][sam]: Not exported elsewhere (??)
-    export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+    # export ZE_FLAT_DEVICE_HIERARCHY=FLAT
     #======================================================
 }
 

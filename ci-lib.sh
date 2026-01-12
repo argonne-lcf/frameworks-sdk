@@ -30,6 +30,15 @@ build_bdist_wheel() {
     uv build --wheel "$1"
 }
 
+# Archives built artifacts in a given directory to `$PWD`.
+archive_artifacts() {
+    pushd
+    OUT_DIR="$PWD"
+    pushd
+
+    find "$1" -type f -name "*.whl" -print0 | xargs -0 cp --target-directory="$OUT_DIR"
+}
+
 # Cleans up the given build directory.
 cleanup_build_dir() {
     BUILD_DIR="$PWD"

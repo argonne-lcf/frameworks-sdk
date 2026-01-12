@@ -49,9 +49,11 @@ export MAX_JOBS=48
 # build_bdist_wheel .
 python setup.py bdist_wheel --verbose
 
-# 4) Cleanup
-# TODO archive artifacts!
+# 4) Archive Artifacts
 popd
+archive_artifacts 'pytorch'
+
+# 5) Cleanup
 cleanup_build_dir
 
 # 4) Verify

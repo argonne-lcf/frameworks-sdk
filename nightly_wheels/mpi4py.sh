@@ -1,8 +1,19 @@
 #!/bin/sh
 
-# 5) Build mpi4py
-git clone https://github.com/mpi4py/mpi4py
-cd mpi4py
-CC=mpicc CXX=mpicxx python setup.py bdist_wheel > "mpi4py-build-whl-$(date +%Y-%m-%d-%H%M%S).log" 2>&1
-pip install dist/*.whl
-cd ../
+set -xe
+source ../ci-lib.sh
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/mpi4py/mpi4py'
+setup_build_env
+
+# 2) Set mpi4py configuration
+export CC='mpicc'
+export CXX='mpicxx'
+
+# 3) Build
+build_bdist_wheel 'mpi4py'
+
+# 4) Cleanup
+archive_artifacts 'mpi4py'
+cleanup_build_dir

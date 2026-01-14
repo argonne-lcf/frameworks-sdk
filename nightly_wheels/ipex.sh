@@ -21,8 +21,7 @@ gen_build_dir_with_git 'https://github.com/intel/intel-extension-for-pytorch' -b
 setup_build_env
 pushd 'intel-extension-for-pytorch'
 
-uv venv --python 3.12
-uv pip install --no-cache --link-mode=copy -r requirements.txt pip "$TORCH_WHEEL"
+setup_uv_venv -r requirements.txt pip "$TORCH_WHEEL"
 
 # 2) Set IPEX build configuration
 export CC="$(which gcc)"

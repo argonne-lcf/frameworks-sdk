@@ -25,9 +25,22 @@ gen_build_dir_with_git() {
     git clone --depth=1 --recurse-submodules "$@"
 }
 
+# Sets up a `uv venv` in `$PWD` and installs passed dependencies.
+setup_uv_venv() {
+    # TODO Switch to `uv sync` and `uv build` for wheel compilation? There are
+    # problems building with uv directly if the project has a poorly-written
+    # pyproject.toml or expects build dependencies to be installed via pip
+    # manually before or during compilation.
+    uv venv --python 3.12
+    uv pip install --no-cache --link-mode=copy "$@"
+}
+
 # Build a bdist wheel from a source directory.
 build_bdist_wheel() {
-    uv build --wheel "$1"
+    # We directly invoke `setup.py` so we can use our custom venvs.
+    source .venv/bin/activate
+    python setup.py bdist_wheel
+    deactivate
 }
 
 # Archives built artifacts in a given directory to `$PWD`.

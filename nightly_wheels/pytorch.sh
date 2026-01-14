@@ -6,11 +6,11 @@ source ../ci-lib.sh
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/pytorch/pytorch' -b v2.10.0-rc6
 setup_build_env
-pushd 'pytorch'
 
 # Must use uv-managed python for development headers
 setup_uv_venv --group dev pip mkl-static mkl-include
 
+# TODO source compile the corresponding pinned triton-xpu version
 source .venv/bin/activate
 USE_XPU=1 make triton
 deactivate
@@ -41,15 +41,9 @@ export TORCH_XPU_ARCH_LIST='pvc'
 export OCLOC_VERSION=24.39.1
 export MAX_JOBS=48
 
-# 3) Build
+# 3) Build & Archive
 build_bdist_wheel
-
-# 4) Archive Artifacts
-popd
-archive_artifacts 'pytorch'
-
-# 5) Cleanup
-cleanup_build_dir
+archive_artifacts
 
 # 4) Verify
 # TODO separate build from tests/validation

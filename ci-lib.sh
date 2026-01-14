@@ -21,8 +21,10 @@ setup_build_env() {
 
 # Generates a tmpdir and pulls a Git repo.
 gen_build_dir_with_git() {
-    pushd "$(mktemp -d)"
-    git clone --depth=1 --recurse-submodules "$@"
+    TMP_DIR="$(mktemp -d)"
+    pushd "$TMP_DIR"
+    git clone --depth=1 --recurse-submodules "$@" .
+    trap "rm -rf $TMP_DIR" 0
 }
 
 # Sets up a `uv venv` in `$PWD` and installs passed dependencies.
@@ -46,18 +48,9 @@ build_bdist_wheel() {
 
 # Archives built artifacts in a given directory to `$PWD`.
 archive_artifacts() {
-    pushd
-    OUT_DIR="$PWD"
-    pushd
-
-    find "$1" -type f -name "*.whl" -print0 | xargs -0 cp --target-directory="$OUT_DIR"
-}
-
-# Cleans up the given build directory.
-cleanup_build_dir() {
-    BUILD_DIR="$PWD"
+    TMP_DIR="$PWD"
     popd
-    rm -rf "$BUILD_DIR"
+    find "$TMP_DIR" -type f -name "*.whl" -print0 | xargs -0 cp --target-directory="$PWD"
 }
 
 # vim: ts=4:sw=4:expandtab

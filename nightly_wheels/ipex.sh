@@ -19,7 +19,6 @@ fi
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/intel/intel-extension-for-pytorch' -b xpu-main
 setup_build_env
-pushd 'intel-extension-for-pytorch'
 
 setup_uv_venv -r requirements.txt pip "$TORCH_WHEEL"
 
@@ -29,13 +28,6 @@ export CXX="$(which g++)"
 export INTELONEAPIROOT="$ONEAPI_ROOT"
 export MAX_JOBS=16
 
-# 3) Build Intel Extension for PyTorch
-# build_bdist_wheel 'intel-extension-for-pytorch'
-source .venv/bin/activate
-python setup.py bdist_wheel
-deactivate
-popd
-
-# 4) Cleanup
-archive_artifacts 'intel-extension-for-pytorch'
-cleanup_build_dir
+# 3) Build & Archive
+build_bdist_wheel
+archive_artifacts

@@ -4,7 +4,7 @@ set -xe
 source ../ci-lib.sh
 
 # 1) Pull source and gen build environment
-gen_build_dir_with_git 'https://github.com/pytorch/pytorch'
+gen_build_dir_with_git 'https://github.com/pytorch/pytorch' -b v2.10.0-rc6
 setup_build_env
 pushd 'pytorch'
 

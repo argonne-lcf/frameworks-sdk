@@ -3,11 +3,15 @@
 # Loads the necessary environment for component builds.
 setup_build_env() {
     module reset
+    case "$(hostname -f)" in
+        (*"sunspot.alcf.anl.gov")
+            module load cmake;; # `cmake` not in the system path on Sunspot
+    esac
+
     # module unload oneapi mpich
     # module use /soft/compilers/oneapi/2025.1.3/modulefiles
     # module use /soft/compilers/oneapi/nope/modulefiles
     # module add mpich/nope/develop-git.6037a7a
-    # module load cmake
 
     # TODO: are these needed?
     # unset CMAKE_ROOT

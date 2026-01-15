@@ -56,3 +56,22 @@ ipex:
     expire_in: never
     paths:
       - "**/*.whl"
+
+torch-ccl:
+  stage: build
+  extends: .aurora-shell-runner
+  # scheduler parameters
+  variables:
+    ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
+  needs:
+    - job: pytorch
+  script:
+    - cd frameworks-standalone/nightly_wheels
+    - ./oneccl.sh -t *.whl
+
+  artifacts:
+    name: "nightly-wheels-${ENV_NAME}"
+    when: always
+    expire_in: never
+    paths:
+      - "**/*.whl"

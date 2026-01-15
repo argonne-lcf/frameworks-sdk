@@ -3,9 +3,24 @@
 set -xe
 source ../ci-lib.sh
 
+# 0) Get pytorch wheel as argument
+while getopts 't:' opt; do
+    case "$opt" in
+        t)
+            TORCH_WHEEL="$(realpath $OPTARG)";;
+    esac
+done
+
+if [ -z "$TORCH_WHEEL" ]; then
+    echo "Usage: $0 -t <pytorch_wheel>" 1>&2
+    exit 1
+fi
+
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/intel/torch-ccl'
 setup_build_env
+
+setup_uv_venv -r requirements.txt "$TORCH_WHEEL"
 
 # FIXME need to checkout c27ded5 or create a patch because the repo version.txt is messed up
 # git checkout c27ded5
@@ -16,9 +31,6 @@ export INTELONEAPIROOT="$ONEAPI_ROOT"
 export USE_SYSTEM_ONECCL='ON'
 export COMPUTE_BACKEND='dpcpp'
 
-# 3) Build
-build_bdist_wheel 'torch-ccl'
-
-# 4) Cleanup
-archive_artifacts 'torch-ccl'
-cleanup_build_dir
+# 3) Build & Archive
+build_bdist_wheel
+archive_artifacts

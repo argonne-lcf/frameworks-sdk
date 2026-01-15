@@ -11,9 +11,6 @@ setup_build_env
 export CC='mpicc'
 export CXX='mpicxx'
 
-# 3) Build
-build_bdist_wheel 'mpi4py'
-
-# 4) Cleanup
-archive_artifacts 'mpi4py'
-cleanup_build_dir
+# 3) Build & Archive
+uv build
+archive_artifacts

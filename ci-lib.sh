@@ -35,7 +35,9 @@ setup_uv_venv() {
     # manually before or during compilation.
     # TODO: allow specifying different python versions programatically
     uv venv --python 3.12
-    uv pip install --no-cache --link-mode=copy "$@"
+    if [ "$#" -gt 0 ]; then
+        uv pip install --no-cache --link-mode=copy "$@"
+    fi
 }
 
 # Build a bdist wheel from a source directory.

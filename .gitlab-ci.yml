@@ -14,8 +14,6 @@ variables:
   BUILD_ROOT: "/tmp/frameworks-nightly/builds"
   # where to collect logs and wheels on Lustre
   REMOTE_ROOT: "/lus/flare/projects/datascience/ewong25/.frameworks-nightly"
-  # clone submodules
-  GIT_SUBMODULE_STRATEGY: recursive
   HTTP_PROXY:  "http://proxy.alcf.anl.gov:3128"
   HTTPS_PROXY: "http://proxy.alcf.anl.gov:3128"
   http_proxy:  "http://proxy.alcf.anl.gov:3128"
@@ -28,7 +26,7 @@ pytorch:
   variables:
     ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
   script:
-    - cd frameworks-standalone/nightly_wheels
+    - cd nightly_wheels
     - ./pytorch.sh
 
   artifacts:
@@ -47,7 +45,7 @@ ipex:
   needs:
     - job: pytorch
   script:
-    - cd frameworks-standalone/nightly_wheels
+    - cd nightly_wheels
     - ./ipex.sh -t *.whl
 
   artifacts:
@@ -66,7 +64,7 @@ torch-ccl:
   needs:
     - job: pytorch
   script:
-    - cd frameworks-standalone/nightly_wheels
+    - cd nightly_wheels
     - ./oneccl.sh -t *.whl
 
   artifacts:
@@ -83,7 +81,7 @@ mpi4py:
   variables:
     ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
   script:
-    - cd frameworks-standalone/nightly_wheels
+    - cd nightly_wheels
     - ./mpi4py.sh
 
   artifacts:

@@ -1,5 +1,10 @@
 # Common library for frameworks-sdk build scripts
 
+set -x \        # command trace
+    -e \        # non-zero exit
+    -u \        # fail on unset env var
+    -o pipefail # pipe return as last
+
 # Loads the necessary environment for component builds.
 setup_build_env() {
     module reset

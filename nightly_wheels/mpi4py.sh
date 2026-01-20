@@ -1,6 +1,5 @@
 #!/bin/sh
 
-set -xe
 source ../ci-lib.sh
 
 # 1) Pull source and gen build environment

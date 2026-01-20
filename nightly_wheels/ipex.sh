@@ -1,6 +1,5 @@
 #!/bin/sh
 
-set -xe
 source ../ci-lib.sh
 
 # 0) Get pytorch wheel as argument

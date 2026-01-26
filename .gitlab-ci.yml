@@ -1,92 +1,27 @@
-# .gitlab-ci.yml
-# Build frameworks nightly wheels on Aurora.
+# Build, package, and test the Frameworks SDK from {Aurora,Sunspot}
 include:
   - project: 'anl/ci-resources/defaults'
     ref: main
     file:
       - '/runners.yml'
 
+  # Nightly Wheels
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: torch
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: intel_extension_for_pytorch
+      flags: -t *.whl
+      needs: [torch]
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: oneccl_bind_pt
+      flags: -t *.whl
+      needs: [torch]
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: mpi4py
+
 stages:
   - build
-
-variables:
-  # build in /tmp instead of on Lustre
-  BUILD_ROOT: "/tmp/frameworks-nightly/builds"
-  # where to collect logs and wheels on Lustre
-  REMOTE_ROOT: "/lus/flare/projects/datascience/ewong25/.frameworks-nightly"
-  HTTP_PROXY:  "http://proxy.alcf.anl.gov:3128"
-  HTTPS_PROXY: "http://proxy.alcf.anl.gov:3128"
-  http_proxy:  "http://proxy.alcf.anl.gov:3128"
-  https_proxy: "http://proxy.alcf.anl.gov:3128"
-
-pytorch:
-  stage: build
-  extends: .sunspot-shell-runner
-  # scheduler parameters
-  variables:
-    ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
-  script:
-    - cd nightly_wheels
-    - ./pytorch.sh
-
-  artifacts:
-    name: "nightly-wheels-${ENV_NAME}"
-    when: always
-    expire_in: never
-    paths:
-      - "**/*.whl"
-
-ipex:
-  stage: build
-  extends: .sunspot-shell-runner
-  # scheduler parameters
-  variables:
-    ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
-  needs:
-    - job: pytorch
-  script:
-    - cd nightly_wheels
-    - ./ipex.sh -t *.whl
-
-  artifacts:
-    name: "nightly-wheels-${ENV_NAME}"
-    when: always
-    expire_in: never
-    paths:
-      - "**/*.whl"
-
-torch-ccl:
-  stage: build
-  extends: .sunspot-shell-runner
-  # scheduler parameters
-  variables:
-    ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
-  needs:
-    - job: pytorch
-  script:
-    - cd nightly_wheels
-    - ./oneccl.sh -t *.whl
-
-  artifacts:
-    name: "nightly-wheels-${ENV_NAME}"
-    when: always
-    expire_in: never
-    paths:
-      - "**/*.whl"
-
-mpi4py:
-  stage: build
-  extends: .sunspot-shell-runner
-  # scheduler parameters
-  variables:
-    ANL_AURORA_SCHEDULER_PARAMETERS: "-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod"
-  script:
-    - cd nightly_wheels
-    - ./mpi4py.sh
-
-  artifacts:
-    name: "nightly-wheels-${ENV_NAME}"
-    when: always
-    expire_in: never
-    paths:
-      - "**/*.whl"

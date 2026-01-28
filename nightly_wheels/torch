@@ -3,7 +3,7 @@
 source ../ci-lib.sh
 
 # 1) Pull source and gen build environment
-gen_build_dir_with_git 'https://github.com/pytorch/pytorch' -b v2.10.0-rc6
+gen_build_dir_with_git 'https://github.com/pytorch/pytorch' -b "$FRAMEWORKS_TORCH_VERSION"
 setup_build_env
 
 # Must use uv-managed python for development headers

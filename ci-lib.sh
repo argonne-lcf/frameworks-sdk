@@ -18,8 +18,6 @@ setup_build_env() {
     # global MAX_JOBS for {torch, ipex}
     export MAX_JOBS=48
 
-    export DEFAULT_PYTHON_VERSION="${DEFAULT_PYTHON_VERSION:-3.12}"
-
     # use uv.toml in repo root for CI scripts
     export UV_CONFIG_FILE="$FRAMEWORKS_SDK_DIR/uv.toml"
 
@@ -51,7 +49,7 @@ setup_uv_venv() {
     # problems building with uv directly if the project has a poorly-written
     # pyproject.toml or expects build dependencies to be installed via pip
     # manually before or during compilation.
-    uv venv --python "$DEFAULT_PYTHON_VERSION"
+    uv venv --python "$FRAMEWORKS_PYTHON_VERSION"
     if [ "$#" -gt 0 ]; then
         uv pip install "$@"
     fi

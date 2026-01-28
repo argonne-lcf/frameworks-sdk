@@ -16,9 +16,9 @@ variables using the `setup_build_env` routine in `ci-lib.sh`.
 Build scripts are generally structured similarly.
 
 ```sh
-#!/bin/sh
+#!/usr/bin/env bash
 
-source ../ci-lib.sh
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/<foo>/<bar>'
@@ -27,12 +27,13 @@ setup_build_env
 setup_uv_venv # pass needed dependencies (i.e. from prior builds) here
 
 # 2) Set <library> configuration
-export CC="$(which gcc)"
-export CXX="$(which g++)"
+CC="$(which gcc)"
+export CC
+CXX="$(which g++)"
+export CXX
 
 # 3) Build & Archive
 build_bdist_wheel
-archive_artifacts
 ```
 
 ## Wheels

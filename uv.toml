@@ -1,0 +1,5 @@
+# User home disk quota fills up w/ caching if not on project allocation
+cache-dir = "/lus/flare/projects/datascience/frameworks-ci/uv-cache"
+
+# Lustre doesn't support hardlinks
+link-mode = "copy"

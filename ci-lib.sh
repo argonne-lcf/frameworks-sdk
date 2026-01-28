@@ -1,5 +1,7 @@
 # Common library for frameworks-sdk build scripts
 
+FRAMEWORKS_SDK_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+
 set -x # command trace
 set -e # non-zero exit
 set -u # fail on unset env var
@@ -17,6 +19,9 @@ setup_build_env() {
     export MAX_JOBS=48
 
     export DEFAULT_PYTHON_VERSION="${DEFAULT_PYTHON_VERSION:-3.12}"
+
+    # use uv.toml in repo root for CI scripts
+    export UV_CONFIG_FILE="$FRAMEWORKS_SDK_DIR/uv.toml"
 
     # module unload oneapi mpich
     # module use /soft/compilers/oneapi/2025.1.3/modulefiles
@@ -48,9 +53,7 @@ setup_uv_venv() {
     # manually before or during compilation.
     uv venv --python "$DEFAULT_PYTHON_VERSION"
     if [ "$#" -gt 0 ]; then
-        # FIXME user home disk quota fills up w/ caching
-        # Lustre doesn't support hardlinks
-        uv pip install --no-cache --link-mode=copy "$@"
+        uv pip install "$@"
     fi
 }
 

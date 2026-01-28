@@ -38,7 +38,6 @@ export INTEL_MKL_DIR="$MKLROOT"
 export USE_AOT_DEVLIST='pvc'
 export TORCH_XPU_ARCH_LIST='pvc'
 export OCLOC_VERSION=24.39.1
-export MAX_JOBS=48
 
 # 3) Build & Archive
 build_bdist_wheel

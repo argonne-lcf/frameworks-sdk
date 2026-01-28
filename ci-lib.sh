@@ -13,6 +13,9 @@ setup_build_env() {
             module load cmake;; # `cmake` not in the system path on Sunspot
     esac
 
+    # global MAX_JOBS for {torch, ipex}
+    export MAX_JOBS=48
+
     export DEFAULT_PYTHON_VERSION="${DEFAULT_PYTHON_VERSION:-3.12}"
 
     # module unload oneapi mpich

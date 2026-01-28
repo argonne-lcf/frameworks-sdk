@@ -25,7 +25,6 @@ setup_uv_venv -r requirements.txt pip "$TORCH_WHEEL"
 export CC="$(which gcc)"
 export CXX="$(which g++)"
 export INTELONEAPIROOT="$ONEAPI_ROOT"
-export MAX_JOBS=16
 
 # 3) Build & Archive
 build_bdist_wheel

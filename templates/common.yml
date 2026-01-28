@@ -16,6 +16,7 @@ include:
 .common-runner:
   extends: .$[[ inputs.runner ]]-shell-runner
   timeout: 3h
+  interruptible: true
   variables:
     ANL_AURORA_SCHEDULER_PARAMETERS: '-A datascience -l select=1,walltime=06:00:00,filesystems=home:flare -q prod'
     HTTP_PROXY:  'http://proxy.alcf.anl.gov:3128'

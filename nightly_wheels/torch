@@ -42,4 +42,3 @@ export MAX_JOBS=48
 
 # 3) Build & Archive
 build_bdist_wheel
-archive_artifacts

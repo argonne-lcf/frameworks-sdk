@@ -12,4 +12,3 @@ export CXX='mpicxx'
 
 # 3) Build & Archive
 uv build
-archive_artifacts

@@ -22,7 +22,7 @@ module add ninja
 #cd llvm-project/
 #git checkout f6ded0be897e2878612dd903f7e8bb85448269e5
 #git submodule sync && git submodule update --init --recursive
-REPO_ROOT=/lus/tegu/projects/datasets/software/25.273.0/wheelforge/repositories/llvm_proj_gitf6ded0b_01_27_2026
+REPO_ROOT=/lus/tegu/projects/datasets/software/26.26.0/wheelforge/repositories/llvm_proj_gitf6ded0b_01_27_2026
 LOG_FILE=${REPO_ROOT}/llvm-proj-build-$(tstamp).log
 
 touch ${LOG_FILE}
@@ -41,6 +41,10 @@ mkdir -p ${LLVM_BUILD_PATH}
 mkdir -p ${LLVM_INSTALL_PATH}
 
 cd ${REPO_ROOT}/llvm-project/
+
+# Be mindful about the clang and clang++ paths, they might not exist as is,
+# but, on Aurora PE we usually maintain similar directory structure.
+# Same goes for the --gcc-install-dir path
 
 if [ -z "$CMAKE_ARGS" ]; then
     if [ "$#" -eq 0 ]; then

@@ -21,7 +21,7 @@ module add cmake
 unset CMAKE_ROOT
 
 
-REPO_DIR=/lus/tegu/projects/datasets/software/25.273.0/wheelforge/repositories/pti_gpu_0.16.0_rc1_10_26_2026
+REPO_DIR=/lus/tegu/projects/datasets/software/26.26.0/wheelforge/repositories/pti_gpu_0.16.0_rc1_10_26_2026
 LOG_FILE=${REPO_DIR}/pti-gpu-build-$(tstamp).log
 
 touch ${LOG_FILE}

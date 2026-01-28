@@ -1,18 +1,23 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-source ../ci-lib.sh
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 0) Get pytorch wheel as argument
 while getopts 't:' opt; do
-    case "$opt" in
-        t)
-            TORCH_WHEEL="$(realpath $OPTARG)";;
-    esac
+	case "$opt" in
+	t)
+		TORCH_WHEEL="$(realpath "$OPTARG")"
+		;;
+	*)
+		echo "Usage: $0 -t <pytorch_wheel>" 1>&2
+		exit 1
+		;;
+	esac
 done
 
 if [ -z "$TORCH_WHEEL" ]; then
-    echo "Usage: $0 -t <pytorch_wheel>" 1>&2
-    exit 1
+	echo "Usage: $0 -t <pytorch_wheel>" 1>&2
+	exit 1
 fi
 
 # 1) Pull source and gen build environment

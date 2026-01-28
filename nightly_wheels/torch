@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-source ../ci-lib.sh
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/pytorch/pytorch' -b "$FRAMEWORKS_TORCH_VERSION"
@@ -10,13 +10,16 @@ setup_build_env
 setup_uv_venv --group dev pip mkl-static mkl-include
 
 # TODO source compile the corresponding pinned triton-xpu version
+# shellcheck source=/dev/null
 source .venv/bin/activate
 USE_XPU=1 make triton
 deactivate
 
 # 2) Set PyTorch build configuration
-export CC="$(which gcc)"
-export CXX="$(which g++)"
+CC="$(which gcc)"
+export CC
+CXX="$(which g++)"
+export CXX
 export REL_WITH_DEB_INFO=1
 export USE_CUDA=0
 export USE_ROCM=0

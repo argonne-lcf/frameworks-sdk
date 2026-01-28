@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-source ../ci-lib.sh
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/mpi4py/mpi4py'

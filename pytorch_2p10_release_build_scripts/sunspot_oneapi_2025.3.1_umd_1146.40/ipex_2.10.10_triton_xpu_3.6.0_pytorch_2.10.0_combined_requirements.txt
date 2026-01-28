@@ -1,0 +1,45 @@
+# Python dependency packages for PyTorch/2.10.0 and IPEX/v2.10.0+xpu(01/28/2026) 
+# and triton-xpu/3.6.0
+# Removed cmake as we want to depend on system-wide installation, but ran into 
+# cmake configuring issue. So bringing it back and trying the conda cmake
+astunparse
+cmake>=3.27,<4.0 ## ,<4.0 coming from triton-xpu
+expecttest>=0.3.0
+filelock
+fsspec>=0.8.5
+hypothesis
+jinja2
+lintrunner ; platform_machine != "s390x" and platform_machine != "riscv64"
+networkx>=2.5.1
+ninja<1.13.0 ## <1.13.0 comes from triton-xpu
+spin
+wheel
+build[uv]
+build
+six  # dependency chain: NNPACK -> PeachPy -> six
+pip  # not technically needed, but this makes setup.py invocation work
+## This is a special requirement, as I built my PyTorch wheel with numpy==2.2.6
+numpy==2.2.6
+optree>=0.13.0
+packaging
+psutil
+pytest
+pyyaml
+requests
+## ruamel is needed by IPEX but not mentioned anywhere!
+ruamel.yaml==0.18.6
+scipy>=1.8.0
+## PyTorch wants setuptools>=70.1.0
+## IPEX wants setuptools==78.1.1
+setuptools==78.1.1
+sympy>=1.13.3
+types-dataclasses
+typing_extensions
+## PyTorch wants a specific version of typing-extensions, IPEX has no restrictions
+typing-extensions>=4.15.0
+## triton-xpu specific
+pybind11>=2.13.1
+lit
+## Not mentioned anywhere!! Maybe, pyproject.toml based wheel methods with
+## python -m build --wheel would pick it up, but setup.py can not
+pyelftools 

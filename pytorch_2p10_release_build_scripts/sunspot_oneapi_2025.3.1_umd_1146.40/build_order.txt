@@ -1,0 +1,5 @@
+PyTorch==2.10.0
+triton-xpu==3.6.0
+IPEX==2.10.10=xpu
+torchvision==0.25.0
+

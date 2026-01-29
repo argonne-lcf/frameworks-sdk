@@ -133,16 +133,17 @@ export DPCPP_ROOT=$(realpath $(dirname $(which icpx))/..)
 export CXX=$(which g++)
 export CC=$(which gcc)
 
-export REL_WITH_DEB_INFO=1
+#export REL_WITH_DEB_INFO=1
 export BUILD_DOUBLE_KERNEL=ON
 export MKL_DPCPP_ROOT=${MKLROOT}
-export INTEL_MKL_DIR=$MKLROOT
+#export INTEL_MKL_DIR=$MKLROOT
 export USE_ITT_ANNOTATION=ON
 export BUILD_WITH_CPU=ON
 export _GLIBCXX_USE_CXX11_ABI=1
 export TORCH_DEVICE_BACKEND_AUTOLOAD=0
 export USE_AOT_DEVLIST="pvc"
 export TORCH_XPU_ARCH_LIST="pvc"
+export USE_CUTLASS_KERNELS=1
 
 export CXXFLAGS="$CXXFLAGS -Wno-all -w"
 export CFLAGS="$CFLAGS -Wno-all -w"
@@ -156,13 +157,13 @@ do
     pip uninstall $pkg -y
 done
 
-pip uninstall -y mkl mkl-include
+pip uninstall -y mkl mkl-include onemkl-license
 pip uninstall -y numpy numpy-base
 pip install --no-cache-dir numpy==2.2.6
 
 python setup.py clean --all
 
-python setup.py bdist_wheel --dist-dir ${TMP_WORK}/${CONDA_ENV_NAME} 2>&1 | tee ${TMP_WORK}/${CONDA_ENV_NAME}/"ipex-build-whl-$(tstamp).log"
+MAX_JOBS=16 python setup.py bdist_wheel --dist-dir ${TMP_WORK}/${CONDA_ENV_NAME} 2>&1 | tee ${TMP_WORK}/${CONDA_ENV_NAME}/"ipex-build-whl-$(tstamp).log"
 echo "Finished building ipex/2.10.10+xpu triton_xpu_3.6.0 for PyTorch 2.9.1 wheel with numpy 2.2.6 with oneapi/2025.3.1"
 
 ## This is a safety check. It seems the wheel building process brings in 
@@ -176,7 +177,7 @@ do
     pip uninstall $pkg -y
 done
 
-pip uninstall -y mkl mkl-include
+pip uninstall -y mkl mkl-include onemkl-license
 pip uninstall -y numpy numpy-base
 pip install --no-cache-dir numpy==2.2.6
 
@@ -187,7 +188,7 @@ echo "Finished installing the wheel and dependencies"
 
 echo ""
 echo "Writing the package lists"
-echo"Writing $CONDA_ENV_MANIFEST/${CONDA_ENV_NAME}_conda_env.list"
+echo "Writing $CONDA_ENV_MANIFEST/${CONDA_ENV_NAME}_conda_env.list"
 conda list > $CONDA_ENV_MANIFEST/${CONDA_ENV_NAME}_conda_env.list 2>&1
 echo "Writing $CONDA_ENV_MANIFEST/${CONDA_ENV_NAME}_pip.list" 
 pip list > $CONDA_ENV_MANIFEST/${CONDA_ENV_NAME}_pip.list 2>&1

@@ -15,10 +15,11 @@ CONDA_ENV_NAME=vllm_0.16.0rc0_nre_ipex_2.10.10_pytorch_2.10.0_rel_oneapi_2025.3.
 WHEELHOUSE_TMP=/lus/tegu/projects/datasets/software/26.26.0/wheelhouse
 PYTORCH_REPO_DIR=/lus/tegu/projects/datasets/software/26.26.0/wheelforge/repositories/pytorch_2.10.0_01_27_2026/pytorch
 
-module add miniforge3/25.3.0-3
-source $MINIFORGE3_ROOT/bin/activate
+#module add miniforge3/25.3.0-3
+#source $MINIFORGE3_ROOT/bin/activate
 # The line above does exactly the line below
 #source /opt/aurora/26.26.0/spack/unified/1.1.1/install/linux-x86_64/miniforge3-25.3.0-3-w5hoacg/bin/activate
+source /opt/aurora/26.26.0/spack/unified/1.1.1/install/linux-x86_64/miniforge3-25.11.0-1-uydwzvt/bin/activate
 
 ENVPREFIX=$CONDA_ENV_INSTALL_DIR/$CONDA_ENV_NAME
 CONDA_ENV_MANIFEST=${CONDA_ENV_INSTALL_DIR}/manifests/${CONDA_ENV_NAME}

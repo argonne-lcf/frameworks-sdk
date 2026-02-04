@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/llvm/llvm-project'
+git fetch origin 979132a02d146ec79e2f046e31877516d7f32d20
+git checkout FETCH_HEAD
+setup_build_env
+
+# 2) Set LLVM build configuration for Triton-XPU
+section_start "configure_llvm[collapsed=true]"
+
+export PATH="$(dirname $(which icpx))/compiler:$PATH"
+cmake -G Ninja -S llvm -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_CCACHE_BUILD=OFF \
+  -DLLVM_ENABLE_ASSERTIONS=ON \
+  -DLLVM_ENABLE_LLD=ON \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DLLVM_OPTIMIZED_TABLEGEN=ON \
+  -DMLIR_ENABLE_BINDINGS_PYTHON=OFF \
+  -DLLVM_ENABLE_ZSTD=OFF \
+  -DLLVM_ENABLE_PROJECTS="mlir;llvm;lld" \
+  -DLLVM_TARGETS_TO_BUILD="Native;NVPTX;AMDGPU" \
+  -DLLVM_INSTALL_UTILS=ON \
+  -DCMAKE_INSTALL_PREFIX="$FRAMEWORKS_ROOT_DIR/llvm" \
+  -DCMAKE_C_COMPILER="clang" \
+  -DCMAKE_CXX_COMPILER="clang++" > configure_llvm.log 2>&1
+
+section_end "configure_llvm[collapsed=true]"
+artifact_out "configure_llvm.log"
+
+# 3) Build & Archive
+section_start "build_llvm[collapsed=true]"
+
+ninja -C build install > build_llvm.log 2>&1
+
+section_end "build_llvm[collapsed=true]"
+artifact_out "build_llvm.log"

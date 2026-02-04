@@ -19,7 +19,8 @@ setup_build_env() {
 	module reset
 	case "$(hostname -f)" in
 	*"sunspot.alcf.anl.gov")
-		module load cmake # `cmake` not in the system path on Sunspot
+		# `cmake` and `ninja` are not in the system path on Sunspot
+		module load cmake ninja
 		;;
 	esac
 

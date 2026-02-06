@@ -43,13 +43,19 @@ setup_build_env() {
 
 # Generates a tmpdir and pulls a Git repo.
 gen_build_dir_with_git() {
+	section_start "gen_build_dir_with_git[collapsed=true]"
+
 	pushd "$(mktemp -d)"
 	git clone --depth=1 --recurse-submodules "$@" .
 	trap cleanup_build_dir 0
+
+	section_end "gen_build_dir_with_git[collapsed=true]"
 }
 
 # Sets up a `uv venv` in `$PWD` and installs passed dependencies.
 setup_uv_venv() {
+	section_start "setup_uv_venv[collapsed=true]"
+
 	# TODO Switch to `uv sync` and `uv build` for wheel compilation? There are
 	# problems building with uv directly if the project has a poorly-written
 	# pyproject.toml or expects build dependencies to be installed via pip
@@ -58,15 +64,21 @@ setup_uv_venv() {
 	if [ "$#" -gt 0 ]; then
 		uv pip install "$@"
 	fi
+
+	section_end "setup_uv_venv[collapsed=true]"
 }
 
 # Build a bdist wheel from a source directory.
 build_bdist_wheel() {
+	section_start "build_bdist_wheel[collapsed=true]"
+
 	# We directly invoke `setup.py` so we can use our custom venvs.
 	# shellcheck source=/dev/null
 	source .venv/bin/activate
-	python setup.py bdist_wheel |& tee build_bdist_wheel.log
+	python setup.py bdist_wheel > build_bdist_wheel.log 2>&1
 	deactivate
+
+	section_end "build_bdist_wheel[collapsed=true]"
 }
 
 # Cleans up the build tmpdir and archives built artifacts to `$PWD`.
@@ -76,4 +88,14 @@ cleanup_build_dir() {
 
 	find "$TMP_DIR" -type f \( -name "*.whl" -o -name "build_bdist_wheel.log" \) -print0 | xargs -0 cp -t "$PWD"
 	rm -rf "$TMP_DIR"
+}
+
+# Start a collapsible section in the GitLab log.
+section_start() {
+	echo -e "\e[0Ksection_start:$(date +%s):$1\r\e[0K${2:-${1%[\[]*}}"
+}
+
+# End a collapsible section in the GitLab log.
+section_end() {
+	echo -e "\e[0Ksection_end:$(date +%s):${1%[\[]*}\r\e[0K"
 }

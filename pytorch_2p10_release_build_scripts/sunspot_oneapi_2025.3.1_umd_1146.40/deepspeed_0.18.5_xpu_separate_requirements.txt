@@ -1,0 +1,23 @@
+## These are the deepspeed-0.18.5 specific requirements that are not coming 
+## from any other packages
+## removed qtorch -- as it is an optional dependency
+## https://github.com/deepspeedai/DeepSpeed/blob/v0.18.5/requirements/requirements-dev.txt
+## https://github.com/deepspeedai/DeepSpeed/blob/v0.18.5/requirements/requirements.txt
+accelerate
+hjson
+comet_ml>=3.41.0
+google
+clang-format==18.1.3
+deepspeed-kernels ; sys_platform == 'linux'
+docutils<0.18
+future
+pytest>=7.2.0,<8.4.0
+pytest-forked
+pytest-randomly
+pytest-xdist
+recommonmark
+sphinx
+sphinx-rtd-theme
+wandb
+#mup
+

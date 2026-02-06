@@ -1,0 +1,21 @@
+## torchao specific requirements 
+## (These we are asking pip to resolve the dependency for us, we well have a 
+## list of manifests with this one)
+unittest-xml-reporting
+parameterized
+transformers
+sentencepiece
+bitsandbytes
+matplotlib
+pandas
+fire
+tabulate
+tiktoken
+blobfile
+lm_eval
+diskcache
+pycocotools
+tqdm
+importlib_metadata
+ruff==0.11.6 ## This was fixed in the repository git hub
+pre-commit

@@ -1,5 +1,5 @@
 # Python dependency packages for PyTorch/2.10.0 and IPEX/v2.10.0+xpu(01/28/2026) 
-# and triton-xpu/3.6.0
+# and triton-xpu/3.6.0 and torchvision/0.25.0(01/29/2026)
 # Removed cmake as we want to depend on system-wide installation, but ran into 
 # cmake configuring issue. So bringing it back and trying the conda cmake
 astunparse
@@ -44,4 +44,6 @@ pybind11>=2.13.1
 lit
 ## Not mentioned anywhere!! Maybe, pyproject.toml based wheel methods with
 ## python -m build --wheel would pick it up, but setup.py can not
-pyelftools 
+pyelftools
+## TorchVision specific requirement
+pillow>=5.3.0,!=8.3.*

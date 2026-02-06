@@ -2,11 +2,8 @@
 spec:
   inputs:
     runner:
-      options: [aurora, sunspot]
-      default: aurora
       description: CI runners to use
     env:
-      default: prod.env
       description: Set of environment variables to configure Frameworks
 ---
 

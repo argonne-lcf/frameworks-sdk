@@ -13,8 +13,11 @@ setup_build_env() {
 	module reset
 	case "$(hostname -f)" in
 	*"sunspot.alcf.anl.gov")
-		module load cmake
-		;; # `cmake` not in the system path on Sunspot
+		module load cmake # `cmake` not in the system path on Sunspot
+
+		# override uv cache directory on Sunspot
+		export UV_CACHE_DIR="/lus/tegu/projects/datascience/frameworks-ci/uv-cache"
+		;;
 	esac
 
 	# global MAX_JOBS for {torch, ipex}

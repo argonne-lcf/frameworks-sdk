@@ -23,7 +23,7 @@ with open(src_path, "w") as f:
     f.write(cpp)
 
 build_dir = os.path.join(os.getcwd(), "build_repro")
-os.makedirs(build_dir, exist_ok=True)   # <-- important
+os.makedirs(build_dir, exist_ok=True)
 
 mod = xpu_ext.load(
     name="pyb11_repro",

@@ -1,22 +1,21 @@
 import os
-import textwrap
 import torch
 from intel_extension_for_pytorch.xpu import cpp_extension as xpu_ext
 
 print("torch:", torch.__version__)
 print("has _PYBIND11_COMPILER_TYPE:", hasattr(torch._C, "_PYBIND11_COMPILER_TYPE"))
 
-cpp = textwrap.dedent(r"""
-    #include <torch/extension.h>
+cpp = r"""#include <torch/extension.h>
 
-    torch::Tensor add(torch::Tensor a, torch::Tensor b) {
-        return a + b;
-    }
+torch::Tensor add(torch::Tensor a, torch::Tensor b) {
+    return a + b;
+}
 
-    PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-        m.def("add", &add, "add");
-    }
-""").strip()
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    m.def("add", &add, "add");
+}
+"""
+
 
 src_path = os.path.join(os.getcwd(), "pyb11_repro.cpp")
 with open(src_path, "w") as f:

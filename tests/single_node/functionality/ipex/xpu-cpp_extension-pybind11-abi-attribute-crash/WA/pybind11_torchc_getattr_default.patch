@@ -1,0 +1,20 @@
+--- cpp_extension.py	2026-02-10 21:31:35.279061000 +0000
++++ cpp_extension.py	2026-02-10 21:31:35.361063000 +0000
+@@ -236,7 +236,7 @@
+             self._add_compile_flag(extension, "-DTORCH_API_INCLUDE_EXTENSION_H")
+             # See note [Pybind11 ABI constants]
+             for name in ["COMPILER_TYPE", "STDLIB", "BUILD_ABI"]:
+-                val = getattr(torch._C, f"_PYBIND11_{name}")
++                val = getattr(torch._C, f"_PYBIND11_{name}", None)
+                 if val is not None and not IS_WINDOWS:
+                     self._add_compile_flag(extension, f'-DPYBIND11_{name}="{val}"')
+             self._define_torch_extension_name(extension)
+@@ -1210,7 +1210,7 @@
+     # captured during PyTorch native library compilation in torch/csrc/Module.cpp
+ 
+     for pname in ["COMPILER_TYPE", "STDLIB", "BUILD_ABI"]:
+-        pval = getattr(torch._C, f"_PYBIND11_{pname}")
++        pval = getattr(torch._C, f"_PYBIND11_{pname}", None)
+         if pval is not None and not IS_WINDOWS:
+             common_cflags.append(f'-DPYBIND11_{pname}=\\"{pval}\\"')
+ 

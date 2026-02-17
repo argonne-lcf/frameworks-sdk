@@ -14,17 +14,18 @@ setup_build_env() {
 	case "$(hostname -f)" in
 	*"sunspot.alcf.anl.gov")
 		module load cmake # `cmake` not in the system path on Sunspot
-
-		# override uv cache directory on Sunspot
-		export UV_CACHE_DIR="/lus/tegu/projects/datascience/frameworks-ci/uv-cache"
 		;;
 	esac
 
 	# global MAX_JOBS for {torch, ipex}
 	export MAX_JOBS=48
 
-	# use uv.toml in repo root for CI scripts
-	export UV_CONFIG_FILE="$FRAMEWORKS_SDK_DIR/uv.toml"
+	# configure `uv`
+	export UV_PYTHON_VERSION="$FRAMEWORKS_PYTHON_VERSION"
+	# User home disk quota fills up w/ caching if not on project allocation
+	export UV_CACHE_DIR="$FRAMEWORKS_ROOT_DIR/uv-cache"
+	# Lustre doesn't support hardlinks
+	export UV_LINK_MODE="copy"
 
 	# module unload oneapi mpich
 	# module use /soft/compilers/oneapi/2025.1.3/modulefiles
@@ -60,7 +61,7 @@ setup_uv_venv() {
 	# problems building with uv directly if the project has a poorly-written
 	# pyproject.toml or expects build dependencies to be installed via pip
 	# manually before or during compilation.
-	uv venv --python "$FRAMEWORKS_PYTHON_VERSION"
+	uv venv
 	if [ "$#" -gt 0 ]; then
 		uv pip install "$@"
 	fi

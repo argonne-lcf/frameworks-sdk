@@ -5,16 +5,30 @@ spec:
       options: [aurora, sunspot]
       default: aurora
       description: CI runners to use
-    env:
-      default: prod.env
-      description: Set of environment variables to configure Frameworks
+    root_dir:
+      rules:
+        - if: $[[ inputs.runner ]] == 'aurora'
+          default: '/lus/flare/projects/datascience/frameworks-ci'
+        - if: $[[ inputs.runner ]] == 'sunspot'
+          default: '/lus/tegu/projects/datascience/frameworks-ci'
+      description: Directory to store built artifacts
+    python_version:
+      default: 3.12
+      description: Python version to build against
+    torch_version:
+      default: v2.10.0-rc6
+      description: PyTorch version to build
 ---
+
+variables:
+  FRAMEWORKS_ROOT_DIR: $[[ inputs.root_dir ]]
+  FRAMEWORKS_PYTHON_VERSION: $[[ inputs.python_version ]]
+  FRAMEWORKS_TORCH_VERSION: $[[ inputs.torch_version ]]
 
 include:
   - local: 'templates/common.yml'
     inputs:
       runner: $[[ inputs.runner ]]
-      env: $[[ inputs.env ]]
 
   # Nightly Wheels
   - local: 'templates/nightly-wheel.yml'

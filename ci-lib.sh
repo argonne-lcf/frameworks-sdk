@@ -1,12 +1,18 @@
 # Common library for frameworks-sdk build scripts
 # shellcheck shell=bash
 
-FRAMEWORKS_SDK_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-
 set -x          # command trace
 set -e          # non-zero exit
 set -u          # fail on unset env var
 set -o pipefail # pipe return last err
+
+FRAMEWORKS_SDK_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+
+if [ -v GITLAB_CI ]; then
+	FRAMEWORKS_RUN_DIR="$FRAMEWORKS_ROOT_DIR/$CI_PIPELINE_ID"
+else
+	FRAMEWORKS_RUN_DIR="$FRAMEWORKS_ROOT_DIR/$(whoami)"
+fi
 
 # Loads the necessary environment for component builds.
 setup_build_env() {
@@ -80,14 +86,30 @@ build_bdist_wheel() {
 	deactivate
 
 	section_end "build_bdist_wheel[collapsed=true]"
+
+	# Copy out wheels afterwards
+	artifact_out "*.whl"
+}
+
+# Copies artifacts from the per-run `$FRAMEWORKS_ROOT_DIR` to `$PWD`.
+artifact_in() {
+	find "$FRAMEWORKS_RUN_DIR" -type f -name "$1" -print0 | xargs -0 cp -t .
+}
+
+# Copies artifacts from the build tmpdir to `$FRAMEWORKS_ROOT_DIR`.
+artifact_out() {
+	find . -type f -name "$1" -print0 | xargs -0 install --backup=numbered -C -D -t "$FRAMEWORKS_RUN_DIR"
 }
 
 # Cleans up the build tmpdir and archives built artifacts to `$PWD`.
 cleanup_build_dir() {
-	TMP_DIR="$PWD"
-	popd
+	TMP_DIR="$(realpath .)"
 
-	find "$TMP_DIR" -type f \( -name "*.whl" -o -name "build_bdist_wheel.log" \) -print0 | xargs -0 cp -t "$PWD"
+	# Always pull log files
+	artifact_out "build_bdist_wheel.log" 2>/dev/null || true
+	popd
+	artifact_in "*.log" 2>/dev/null || true
+
 	rm -rf "$TMP_DIR"
 }
 

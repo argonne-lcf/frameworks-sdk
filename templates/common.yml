@@ -3,8 +3,6 @@ spec:
   inputs:
     runner:
       description: CI runners to use
-    env:
-      description: Set of environment variables to configure Frameworks
 ---
 
 include:
@@ -23,8 +21,6 @@ include:
     HTTPS_PROXY: 'http://proxy.alcf.anl.gov:3128'
     http_proxy:  'http://proxy.alcf.anl.gov:3128'
     https_proxy: 'http://proxy.alcf.anl.gov:3128'
-  before_script:
-    - . $[[ inputs.env ]]
 
 stages:
   - build

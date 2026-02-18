@@ -17,11 +17,9 @@ $[[ inputs.wheel ]]:
   extends: .common-runner
   needs: $[[ inputs.needs ]]
   script:
-    - cd nightly_wheels
-    - ./$[[ inputs.wheel ]] $[[ inputs.flags ]]
+    - ./nightly_wheels/$[[ inputs.wheel ]] $[[ inputs.flags ]]
   artifacts:
     when: always
     expire_in: never
     paths:
-      - "**/$[[ inputs.wheel ]]*.whl"
-      - "**/*.log"
+      - "*.log"

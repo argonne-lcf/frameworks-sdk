@@ -1,12 +1,18 @@
 # Common library for frameworks-sdk build scripts
 # shellcheck shell=bash
 
-FRAMEWORKS_SDK_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-
 set -x          # command trace
 set -e          # non-zero exit
 set -u          # fail on unset env var
 set -o pipefail # pipe return last err
+
+FRAMEWORKS_SDK_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+
+if [ -v GITLAB_CI ]; then
+	FRAMEWORKS_RUN_DIR="$FRAMEWORKS_ROOT_DIR/$CI_PIPELINE_ID"
+else
+	FRAMEWORKS_RUN_DIR="$FRAMEWORKS_ROOT_DIR/$(whoami)"
+fi
 
 # Loads the necessary environment for component builds.
 setup_build_env() {
@@ -14,17 +20,18 @@ setup_build_env() {
 	case "$(hostname -f)" in
 	*"sunspot.alcf.anl.gov")
 		module load cmake # `cmake` not in the system path on Sunspot
-
-		# override uv cache directory on Sunspot
-		export UV_CACHE_DIR="/lus/tegu/projects/datascience/frameworks-ci/uv-cache"
 		;;
 	esac
 
 	# global MAX_JOBS for {torch, ipex}
 	export MAX_JOBS=48
 
-	# use uv.toml in repo root for CI scripts
-	export UV_CONFIG_FILE="$FRAMEWORKS_SDK_DIR/uv.toml"
+	# configure `uv`
+	export UV_PYTHON_VERSION="$FRAMEWORKS_PYTHON_VERSION"
+	# User home disk quota fills up w/ caching if not on project allocation
+	export UV_CACHE_DIR="$FRAMEWORKS_ROOT_DIR/uv-cache"
+	# Lustre doesn't support hardlinks
+	export UV_LINK_MODE="copy"
 
 	# module unload oneapi mpich
 	# module use /soft/compilers/oneapi/2025.1.3/modulefiles
@@ -60,7 +67,7 @@ setup_uv_venv() {
 	# problems building with uv directly if the project has a poorly-written
 	# pyproject.toml or expects build dependencies to be installed via pip
 	# manually before or during compilation.
-	uv venv --python "$FRAMEWORKS_PYTHON_VERSION"
+	uv venv
 	if [ "$#" -gt 0 ]; then
 		uv pip install "$@"
 	fi
@@ -79,14 +86,30 @@ build_bdist_wheel() {
 	deactivate
 
 	section_end "build_bdist_wheel[collapsed=true]"
+
+	# Copy out wheels afterwards
+	artifact_out "*.whl"
+}
+
+# Copies artifacts from the per-run `$FRAMEWORKS_ROOT_DIR` to `$PWD`.
+artifact_in() {
+	find "$FRAMEWORKS_RUN_DIR" -type f -name "$1" -print0 | xargs -0 cp -t .
+}
+
+# Copies artifacts from the build tmpdir to `$FRAMEWORKS_ROOT_DIR`.
+artifact_out() {
+	find . -type f -name "$1" -print0 | xargs -0 install --backup=numbered -C -D -t "$FRAMEWORKS_RUN_DIR"
 }
 
 # Cleans up the build tmpdir and archives built artifacts to `$PWD`.
 cleanup_build_dir() {
-	TMP_DIR="$PWD"
-	popd
+	TMP_DIR="$(realpath .)"
 
-	find "$TMP_DIR" -type f \( -name "*.whl" -o -name "build_bdist_wheel.log" \) -print0 | xargs -0 cp -t "$PWD"
+	# Always pull log files
+	artifact_out "build_bdist_wheel.log" 2>/dev/null || true
+	popd
+	artifact_in "*.log" 2>/dev/null || true
+
 	rm -rf "$TMP_DIR"
 }
 

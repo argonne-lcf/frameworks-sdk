@@ -12,3 +12,4 @@ export CXX='mpicxx'
 
 # 3) Build & Archive
 uv build
+artifact_out "mpi4py*.whl"

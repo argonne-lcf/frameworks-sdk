@@ -21,6 +21,9 @@ spec:
     torchccl_version:
       default: master
       description: torchCCL version to build
+    ipex_version:
+      default: xpu-main
+      description: IPEX version to build
 ---
 
 variables:
@@ -28,6 +31,7 @@ variables:
   FRAMEWORKS_PYTHON_VERSION: $[[ inputs.python_version ]]
   FRAMEWORKS_TORCH_VERSION: $[[ inputs.torch_version ]]
   FRAMEWORKS_TORCHCCL_VERSION: $[[ inputs.torchccl_version ]]
+  FRAMEWORKS_IPEX_VERSION: $[[ inputs.ipex_version ]]
 
 include:
   - local: 'templates/common.yml'
@@ -42,6 +46,8 @@ include:
     inputs:
       wheel: intel_extension_for_pytorch
       needs: [torch]
+    rules:
+      - if: '"$[[ inputs.ipex_version ]]" != ""'
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: oneccl_bind_pt

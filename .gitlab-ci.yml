@@ -37,12 +37,10 @@ include:
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: intel_extension_for_pytorch
-      flags: -t *.whl
       needs: [torch]
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: oneccl_bind_pt
-      flags: -t *.whl
       needs: [torch]
   - local: 'templates/nightly-wheel.yml'
     inputs:

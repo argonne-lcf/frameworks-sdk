@@ -3,15 +3,12 @@
 source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 1) Pull source and gen build environment
-gen_build_dir_with_git 'https://github.com/intel/torch-ccl'
+gen_build_dir_with_git 'https://github.com/intel/torch-ccl' -b "$FRAMEWORKS_TORCHCCL_VERSION"
 setup_build_env
 
 artifact_in "torch-*.whl"
 
 setup_uv_venv -r requirements.txt *.whl
-
-# FIXME need to checkout c27ded5 or create a patch because the repo version.txt is messed up
-# git checkout c27ded5
 
 # 2) Set torch-ccl build configuration
 export ONECCL_BINDINGS_FOR_PYTORCH_BACKEND='xpu'

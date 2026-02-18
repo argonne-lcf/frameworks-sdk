@@ -18,12 +18,16 @@ spec:
     torch_version:
       default: v2.10.0-rc6
       description: PyTorch version to build
+    torchccl_version:
+      default: master
+      description: torchCCL version to build
 ---
 
 variables:
   FRAMEWORKS_ROOT_DIR: $[[ inputs.root_dir ]]
   FRAMEWORKS_PYTHON_VERSION: $[[ inputs.python_version ]]
   FRAMEWORKS_TORCH_VERSION: $[[ inputs.torch_version ]]
+  FRAMEWORKS_TORCHCCL_VERSION: $[[ inputs.torchccl_version ]]
 
 include:
   - local: 'templates/common.yml'
@@ -42,6 +46,8 @@ include:
     inputs:
       wheel: oneccl_bind_pt
       needs: [torch]
+    rules:
+      - if: '"$[[ inputs.torchccl_version ]]" != ""'
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: mpi4py

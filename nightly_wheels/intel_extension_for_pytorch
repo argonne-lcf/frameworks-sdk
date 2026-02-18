@@ -3,7 +3,7 @@
 source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 1) Pull source and gen build environment
-gen_build_dir_with_git 'https://github.com/intel/intel-extension-for-pytorch' -b xpu-main
+gen_build_dir_with_git 'https://github.com/intel/intel-extension-for-pytorch' -b "$FRAMEWORKS_IPEX_VERSION"
 setup_build_env
 
 artifact_in "torch-*.whl"

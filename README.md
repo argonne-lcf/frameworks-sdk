@@ -11,6 +11,21 @@ The build environment assumes a user session on
 Prior to building, most build scripts will load common modules and environment
 variables using the `setup_build_env` routine in `ci-lib.sh`.
 
+### Manual Usage
+If not running the CI pipeline, the Framework SDK build scripts can be
+configured via the following environment variables.
+
+| Name | Description | Example |
+| --- | --- | --- |
+| `FRAMEWORKS_ROOT_DIR` | Directory to store built artifacts | `/lus/flare/projects/datascience/frameworks-ci` (Lustre allocation on Aurora) |
+| `FRAMEWORKS_PYTHON_VERSION` | Python version to build against | `3.12` |
+| `FRAMEWORKS_TORCH_VERSION` | PyTorch version to build (`git` ref) | `v2.10.0` |
+| `FRAMEWORKS_TORCHCCL_VERSION` | torchCCL version to build (`git` ref) | `master` |
+| `FRAMEWORKS_IPEX_VERSION` | IPEX version to build (`git` ref) | `xpu-main` |
+
+Then, run any of the scripts in `nightly_wheels`. The resultant builds/logs
+will then be in `$FRAMEWORKS_ROOT_DIR/$(whoami)`.
+
 ## Adding a Build Script
 
 Build scripts are generally structured similarly.

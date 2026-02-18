@@ -16,13 +16,13 @@ spec:
       default: 3.12
       description: Python version to build against
     torch_version:
-      default: v2.10.0-rc6
+      default: main
       description: PyTorch version to build
     torchccl_version:
-      default: master
+      default: ''
       description: torchCCL version to build
     ipex_version:
-      default: xpu-main
+      default: ''
       description: IPEX version to build
 ---
 

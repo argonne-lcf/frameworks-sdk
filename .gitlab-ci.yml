@@ -41,7 +41,11 @@ include:
   # Nightly Wheels
   - local: 'templates/nightly-wheel.yml'
     inputs:
+      wheel: triton
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
       wheel: torch
+      needs: [triton]
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: intel_extension_for_pytorch

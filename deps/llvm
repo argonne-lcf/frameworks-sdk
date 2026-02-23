@@ -2,6 +2,9 @@
 
 source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
+# 0) Only build if not already cached
+[ -d "$FRAMEWORKS_ROOT_DIR/llvm" ] && exit 0
+
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/llvm/llvm-project'
 git fetch origin 979132a02d146ec79e2f046e31877516d7f32d20

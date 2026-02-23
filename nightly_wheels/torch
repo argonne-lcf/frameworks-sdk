@@ -6,14 +6,10 @@ source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 gen_build_dir_with_git 'https://github.com/pytorch/pytorch' -b "$FRAMEWORKS_TORCH_VERSION"
 setup_build_env
 
-# Must use uv-managed python for development headers
-setup_uv_venv --group dev pip mkl-static mkl-include
+artifact_in "triton-*.whl"
 
-# TODO source compile the corresponding pinned triton-xpu version
-# shellcheck source=/dev/null
-source .venv/bin/activate
-USE_XPU=1 make triton
-deactivate
+# Must use uv-managed python for development headers
+setup_uv_venv --group dev pip mkl-static mkl-include *.whl
 
 # 2) Set PyTorch build configuration
 CC="$(which gcc)"

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/intel/intel-xpu-backend-for-triton'
+setup_build_env
+
+setup_uv_venv -r python/requirements.txt
+
+# 2) Set Triton-XPU build configuration
+export PATH="$(dirname $(which icpx))/compiler:$PATH"
+export TRITON_BUILD_WITH_CLANG_LLD=true
+
+export LLVM_SYSPATH="$FRAMEWORKS_ROOT_DIR/llvm"
+export LLVM_LIBRARY_DIR="$LLVM_SYSPATH/lib"
+export LLVM_INCLUDE_DIRS="$LLVM_SYSPATH/include"
+
+export TRITON_APPEND_CMAKE_ARGS="
+	-DLLVM_DIR=$LLVM_SYSPATH/lib/cmake/llvm
+	-DMLIR_DIR=$LLVM_SYSPATH/lib/cmake/mlir
+	-DLLD_DIR=$LLVM_SYSPATH/lib/cmake/lld
+	-DLLVM_SYSPATH=$LLVM_SYSPATH
+"
+
+export TRITON_HOME="$PWD"
+export TRITON_CODEGEN_BACKENDS=intel
+export TRITON_OFFLINE_BUILD=OFF
+export TRITON_BUILD_PROTON=OFF
+## Not setting the link-jobs for now
+##export TRITON_PARALLEL_LINK_JOBS=16
+export TRITON_BUILD_WITH_CCACHE=OFF
+
+# 3) Build & Archive
+build_bdist_wheel

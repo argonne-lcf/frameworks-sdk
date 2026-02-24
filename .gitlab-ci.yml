@@ -41,7 +41,12 @@ include:
   # Nightly Wheels
   - local: 'templates/nightly-wheel.yml'
     inputs:
+      wheel: triton
+      needs: [llvm]
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
       wheel: torch
+      needs: [triton]
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: intel_extension_for_pytorch
@@ -57,3 +62,15 @@ include:
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: mpi4py
+
+# Custom LLVM build for `triton-xpu`
+llvm:
+  stage: build
+  extends: .common-runner
+  script:
+    - ./deps/llvm
+  artifacts:
+    when: always
+    expire_in: never
+    paths:
+      - "*.log"

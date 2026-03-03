@@ -62,6 +62,10 @@ include:
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: mpi4py
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: vllm
+      needs: [torch]
 
 # Custom LLVM build for `triton-xpu`
 llvm:

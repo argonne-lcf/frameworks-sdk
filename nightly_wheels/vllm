@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/vllm-project/vllm'
+setup_build_env
+
+artifact_in "torch-*.whl"
+
+# Remove torch version requirement
+sed -i -e "/^torch==.*$/d" requirements/build.txt
+
+setup_uv_venv -r requirements/build.txt *.whl
+
+# 2) Set IPEX build configuration
+CC="$(which gcc)"
+export CC
+CXX="$(which g++)"
+export CXX
+export VLLM_TARGET_DEVICE=xpu
+
+# 3) Build & Archive
+build_bdist_wheel

@@ -2,12 +2,12 @@
 spec:
   inputs:
     runner:
-      options: [aurora, sunspot]
+      options: [aurora, aurora-eval, sunspot]
       default: aurora
       description: CI runners to use
     root_dir:
       rules:
-        - if: $[[ inputs.runner ]] == 'aurora'
+        - if: $[[ inputs.runner ]] =~ '/^aurora.*/'
           default: '/lus/flare/projects/datascience/frameworks-ci'
         - if: $[[ inputs.runner ]] == 'sunspot'
           default: '/lus/tegu/projects/datascience/frameworks-ci'

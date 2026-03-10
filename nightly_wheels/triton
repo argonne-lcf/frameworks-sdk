@@ -3,7 +3,7 @@
 source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 1) Pull source and gen build environment
-gen_build_dir_with_git 'https://github.com/intel/intel-xpu-backend-for-triton'
+gen_build_dir_with_git 'https://github.com/intel/intel-xpu-backend-for-triton' -b "$FRAMEWORKS_TRITON_VERSION"
 setup_build_env
 
 setup_uv_venv -r python/requirements.txt

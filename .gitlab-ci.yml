@@ -18,6 +18,9 @@ spec:
     torch_version:
       default: main
       description: PyTorch version to build
+    triton_version:
+      default: main
+      description: Triton-XPU version to build
     torchccl_version:
       default: ''
       description: torchCCL version to build
@@ -30,6 +33,7 @@ variables:
   FRAMEWORKS_ROOT_DIR: $[[ inputs.root_dir ]]
   FRAMEWORKS_PYTHON_VERSION: $[[ inputs.python_version ]]
   FRAMEWORKS_TORCH_VERSION: $[[ inputs.torch_version ]]
+  FRAMEWORKS_TRITON_VERSION: $[[ inputs.triton_version ]]
   FRAMEWORKS_TORCHCCL_VERSION: $[[ inputs.torchccl_version ]]
   FRAMEWORKS_IPEX_VERSION: $[[ inputs.ipex_version ]]
 

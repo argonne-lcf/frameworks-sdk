@@ -27,6 +27,9 @@ spec:
     ipex_version:
       default: ''
       description: IPEX version to build
+    vllm_version:
+      default: main
+      description: vLLM version to build
 ---
 
 variables:
@@ -36,6 +39,7 @@ variables:
   FRAMEWORKS_TRITON_VERSION: $[[ inputs.triton_version ]]
   FRAMEWORKS_TORCHCCL_VERSION: $[[ inputs.torchccl_version ]]
   FRAMEWORKS_IPEX_VERSION: $[[ inputs.ipex_version ]]
+  FRAMEWORKS_VLLM_VERSION: $[[ inputs.vllm_version ]]
 
 include:
   - local: 'templates/common.yml'

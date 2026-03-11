@@ -24,6 +24,7 @@ configured via the following environment variables.
 | `FRAMEWORKS_TORCHCCL_VERSION` | torchCCL version to build (`git` ref) | `master` |
 | `FRAMEWORKS_IPEX_VERSION` | IPEX version to build (`git` ref) | `xpu-main` |
 | `FRAMEWORKS_VLLM_VERSION` | vLLM version to build (`git` ref) | `main` |
+| `FRAMEWORKS_VLLM_XPU_KERNELS_VERSION` | vLLM XPU kernels version to build (`git` ref) | `main` |
 
 Then, run any of the scripts in `nightly_wheels`. The resultant builds/logs
 will then be in `$FRAMEWORKS_ROOT_DIR/$(whoami)`.

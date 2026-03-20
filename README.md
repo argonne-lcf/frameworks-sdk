@@ -20,8 +20,10 @@ configured via the following environment variables.
 | `FRAMEWORKS_ROOT_DIR` | Directory to store built artifacts | `/lus/flare/projects/datascience/frameworks-ci` (Lustre allocation on Aurora) |
 | `FRAMEWORKS_PYTHON_VERSION` | Python version to build against | `3.12` |
 | `FRAMEWORKS_TORCH_VERSION` | PyTorch version to build (`git` ref) | `v2.10.0` |
+| `FRAMEWORKS_TRITON_VERSION` | Triton-XPU version to build (`git` ref) | `main` |
 | `FRAMEWORKS_TORCHCCL_VERSION` | torchCCL version to build (`git` ref) | `master` |
 | `FRAMEWORKS_IPEX_VERSION` | IPEX version to build (`git` ref) | `xpu-main` |
+| `FRAMEWORKS_VLLM_VERSION` | vLLM version to build (`git` ref) | `main` |
 
 Then, run any of the scripts in `nightly_wheels`. The resultant builds/logs
 will then be in `$FRAMEWORKS_ROOT_DIR/$(whoami)`.

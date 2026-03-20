@@ -3,11 +3,15 @@
 source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 0) Only build if not already cached
-[ -d "$FRAMEWORKS_ROOT_DIR/llvm" ] && exit 0
+LLVM_HASH="$(curl -s "https://raw.githubusercontent.com/intel/intel-xpu-backend-for-triton/refs/heads/$FRAMEWORKS_TRITON_VERSION/cmake/llvm-hash.txt")"
+if [ -d "$FRAMEWORKS_ROOT_DIR/llvm-$LLVM_HASH" ]; then
+	echo "llvm-$LLVM_HASH already cached in $FRAMEWORKS_ROOT_DIR!" >&2
+	exit 0
+fi
 
 # 1) Pull source and gen build environment
 gen_build_dir_with_git 'https://github.com/llvm/llvm-project'
-git fetch origin 979132a02d146ec79e2f046e31877516d7f32d20
+git fetch origin "$LLVM_HASH"
 git checkout FETCH_HEAD
 setup_build_env
 
@@ -27,17 +31,23 @@ cmake -G Ninja -S llvm -B build \
   -DLLVM_ENABLE_PROJECTS="mlir;llvm;lld" \
   -DLLVM_TARGETS_TO_BUILD="Native;NVPTX;AMDGPU" \
   -DLLVM_INSTALL_UTILS=ON \
-  -DCMAKE_INSTALL_PREFIX="$FRAMEWORKS_ROOT_DIR/llvm" \
+  -DCMAKE_INSTALL_PREFIX="$FRAMEWORKS_ROOT_DIR/llvm-$LLVM_HASH" \
   -DCMAKE_C_COMPILER="clang" \
-  -DCMAKE_CXX_COMPILER="clang++" > configure_llvm.log 2>&1
+  -DCMAKE_CXX_COMPILER="clang++" > configure_llvm.log 2>&1 || {
+	artifact_out "configure_llvm.log"
+	exit 1
+}
+artifact_out "configure_llvm.log"
 
 section_end "configure_llvm[collapsed=true]"
-artifact_out "configure_llvm.log"
 
 # 3) Build & Archive
 section_start "build_llvm[collapsed=true]"
 
-ninja -C build install > build_llvm.log 2>&1
+ninja -C build install > build_llvm.log 2>&1 || {
+	artifact_out "build_llvm.log"
+	exit 1
+}
+artifact_out "build_llvm.log"
 
 section_end "build_llvm[collapsed=true]"
-artifact_out "build_llvm.log"

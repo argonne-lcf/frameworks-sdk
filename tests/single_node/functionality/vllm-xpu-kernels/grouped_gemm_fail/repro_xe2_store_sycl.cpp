@@ -173,7 +173,8 @@ int main() {
   run_once<false>(q, d_broken, M, N);
   run_once<true>(q, d_workaround, M, N);
 
-  std::cout << "broken nan count: " << count_nans(d_broken, elems) << "\n";
+  auto num_broken_nans = count_nans(d_broken, elems);
+  std::cout << "broken nan count: " << num_broken_nans << "\n";
   print_col0("broken", d_broken, M, N);
   print_row0("broken", d_broken, N);
 
@@ -183,5 +184,9 @@ int main() {
 
   sycl::free(d_broken, q);
   sycl::free(d_workaround, q);
-  return 0;
+  if (num_broken_nans > 0) {
+      return 1;
+  } else {
+      return 0;
+  }
 }

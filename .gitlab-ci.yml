@@ -30,6 +30,9 @@ spec:
     vllm_version:
       default: main
       description: vLLM version to build
+    vllm_xpu_kernels_version:
+      default: main
+      description: vLLM XPU kernels version to build
 ---
 
 variables:
@@ -40,6 +43,7 @@ variables:
   FRAMEWORKS_TORCHCCL_VERSION: $[[ inputs.torchccl_version ]]
   FRAMEWORKS_IPEX_VERSION: $[[ inputs.ipex_version ]]
   FRAMEWORKS_VLLM_VERSION: $[[ inputs.vllm_version ]]
+  FRAMEWORKS_VLLM_XPU_KERNELS_VERSION: $[[ inputs.vllm_xpu_kernels_version ]]
 
 include:
   - local: 'templates/common.yml'
@@ -73,6 +77,10 @@ include:
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: vllm
+      needs: [torch]
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: vllm_xpu_kernels
       needs: [torch]
 
 # Custom LLVM build for `triton-xpu`

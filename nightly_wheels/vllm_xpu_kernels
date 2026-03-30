@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/vllm-project/vllm-xpu-kernels' -b "$FRAMEWORKS_VLLM_XPU_KERNELS_VERSION"
+setup_build_env
+
+artifact_in "triton-*.whl"
+artifact_in "torch-*.whl"
+
+# Remove torch version requirement
+sed -i -e "/^--extra-index-url=.*$/d" requirements.txt
+sed -i -e "/^torch==.*$/d" requirements.txt
+sed -i -e "/^triton-xpu$/d" requirements.txt
+
+setup_uv_venv -r requirements.txt *.whl
+
+# 2) Configure vLLM XPU kernels
+export VLLM_XPU_AOT_DEVICES="pvc"
+export VLLM_XPU_XE2_AOT_DEVICES="pvc"
+
+# 3) Build & Archive
+build_bdist_wheel

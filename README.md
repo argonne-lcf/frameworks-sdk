@@ -52,6 +52,7 @@ export CXX
 
 # 3) Build & Archive
 build_bdist_wheel
+artifact_out "<bar>-*.whl"
 ```
 
 ## Wheels
@@ -64,6 +65,10 @@ We have scripts to build the following wheels:
 - intel/
     - intel-extension-for-pytorch
     - torch-ccl
+    - intel-xpu-backend-for-triton
+- vllm-project/
+    - vllm
+    - vllm-xpu-kernels
 - mpi4py/mpi4py
 - h5py/h5py[^disabled]
 

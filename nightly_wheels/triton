@@ -34,3 +34,4 @@ export TRITON_BUILD_WITH_CCACHE=OFF
 
 # 3) Build & Archive
 build_bdist_wheel
+artifact_out "triton-*.whl"

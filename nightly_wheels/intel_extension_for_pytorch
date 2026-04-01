@@ -19,3 +19,4 @@ export INTELONEAPIROOT="$ONEAPI_ROOT"
 
 # 3) Build & Archive
 build_bdist_wheel
+artifact_out "intel_extension_for_pytorch-*.whl"

@@ -87,9 +87,6 @@ build_bdist_wheel() {
 	deactivate
 
 	section_end "build_bdist_wheel[collapsed=true]"
-
-	# Copy out wheels afterwards
-	artifact_out "*.whl"
 }
 
 # Copies artifacts from the per-run `$FRAMEWORKS_ROOT_DIR` to `$PWD`.

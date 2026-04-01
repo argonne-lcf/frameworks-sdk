@@ -18,3 +18,4 @@ export COMPUTE_BACKEND='dpcpp'
 
 # 3) Build & Archive
 build_bdist_wheel
+artifact_out "oneccl_bind_pt-*.whl"

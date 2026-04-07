@@ -40,3 +40,4 @@ export OCLOC_VERSION=24.39.1
 
 # 3) Build & Archive
 build_bdist_wheel
+artifact_out "torch-*.whl"

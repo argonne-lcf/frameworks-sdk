@@ -82,6 +82,10 @@ include:
     inputs:
       wheel: vllm_xpu_kernels
       needs: [torch]
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: torchvision
+      needs: [torch]
 
 # Custom LLVM build for `triton-xpu`
 llvm:

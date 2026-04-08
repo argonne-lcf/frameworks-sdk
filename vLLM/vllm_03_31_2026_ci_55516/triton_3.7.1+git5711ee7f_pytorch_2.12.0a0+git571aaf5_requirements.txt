@@ -1,0 +1,31 @@
+# Python dependencies required for development
+#
+# ── Build System ──────────────────────────────────────────────────────────────
+setuptools>=70.2.0,<82       # triton-xpu raises floor to 70.2.0; pytorch caps at <82
+cmake>=3.27,<4.0             # pytorch raises floor to 3.27; triton-xpu caps at <4.0
+ninja<1.13.0                 # triton-xpu adds upper bound
+numpy
+packaging
+pyelftools                   # ELF parsing utility
+pybind11>=2.13.1             # triton-xpu
+pyyaml
+requests
+six                          # dependency chain: NNPACK -> PeachPy -> six
+typing-extensions>=4.15.0
+pip                          # not technically needed, but makes setup.py invocation work
+#
+# ── Install / Development ─────────────────────────────────────────────────────
+build[uv]                    # absorbs triton-xpu's bare `build`; uv extra is a superset
+expecttest>=0.3.0
+filelock
+fsspec>=0.8.5
+hypothesis
+jinja2
+lit                          # triton-xpu
+lintrunner ; platform_machine != "s390x"
+networkx>=2.5.1
+optree>=0.13.0
+psutil
+spin
+sympy>=1.13.3
+wheel

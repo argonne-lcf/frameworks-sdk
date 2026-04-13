@@ -9,9 +9,9 @@ setup_build_env
 artifact_in "torch-*.whl"
 
 # Remove torch version requirement
-sed -i -e "/^torch==.*$/d" requirements/build.txt
+sed -i -e "/^torch==.*$/d" requirements/build/cuda.txt
 
-setup_uv_venv -r requirements/build.txt *.whl
+setup_uv_venv -r requirements/build/cuda.txt *.whl
 
 # 2) Set IPEX build configuration
 CC="$(which gcc)"

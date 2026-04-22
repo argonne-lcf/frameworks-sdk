@@ -2,23 +2,21 @@ setup() {
 	# Load prereqs
 	load 'test_helper/bats-support/load'
 	load 'test_helper/bats-assert/load'
-	source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
-	set +x # re-disable command trace after loading `ci-lib.sh`
-	setup_build_env
+	load 'test_helper/test-lib.bats'
 }
 
 @test "pytorch/test" {
-	git clone --depth=1 https://github.com/pytorch/pytorch -b "$FRAMEWORKS_TORCH_VERSION"
-	cd pytorch
+	spawn_job -q debug -A datascience -N 1 -t 01:00:00 -f home:flare <<EOF
+source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
+setup_build_env
 
-	# Setup ephemeral uv venv
-	artifact_in "torch*.whl"
-	setup_uv_venv -r .ci/docker/requirements-ci.txt *.whl
+gen_build_dir_with_git https://github.com/pytorch/pytorch -b "$FRAMEWORKS_TORCH_VERSION"
 
-	# Run testsuite
-	uv run --no-sync -- ./test/run_test.py --core --keep-going
-}
+# Setup ephemeral uv venv
+artifact_in "torch*.whl"
+setup_uv_venv -r .ci/docker/requirements-ci.txt *.whl
 
-teardown_file() {
-	rm -rf pytorch
+# Run testsuite
+uv run --no-sync -- ./test/run_test.py --core --keep-going
+EOF
 }

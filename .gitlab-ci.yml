@@ -98,3 +98,11 @@ llvm:
     expire_in: never
     paths:
       - "*.log"
+
+test:
+  stage: test
+  extends: .common-runner
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - ./tests/bats/bin/bats tests/*.bats

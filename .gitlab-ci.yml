@@ -105,4 +105,12 @@ test:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - ./tests/bats/bin/bats tests/*.bats
+    - ./tests/bats/bin/bats --report-formatter junit --output . tests/*.bats
+  artifacts:
+    when: always
+    expire_in: never
+    paths:
+      - "*.xml"
+    reports:
+      junit:
+        - "*.xml"

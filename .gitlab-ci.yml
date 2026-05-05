@@ -98,3 +98,19 @@ llvm:
     expire_in: never
     paths:
       - "*.log"
+
+test:
+  stage: test
+  extends: .common-runner
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - ./tests/bats/bin/bats --report-formatter junit --output . tests/*.bats
+  artifacts:
+    when: always
+    expire_in: never
+    paths:
+      - "*.xml"
+    reports:
+      junit:
+        - "*.xml"

@@ -5,6 +5,10 @@ setup() {
 	load 'test_helper/test-lib.bats'
 }
 
+@test "mpi4py/sanity" {
+	./tests/single_node/functionality/mpi4py/sanity.sh
+}
+
 @test "mpi4py/test" {
 	spawn_job -q debug -A datascience -N 1 -t 01:00:00 -f home:flare <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"

@@ -5,6 +5,10 @@ setup() {
 	load 'test_helper/test-lib.bats'
 }
 
+@test "pytorch/sanity" {
+	./tests/single_node/functionality/pytorch/sanity.sh
+}
+
 @test "pytorch/test" {
 	spawn_job -q debug -A datascience -N 1 -t 01:00:00 -f home:flare <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"

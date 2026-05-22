@@ -47,6 +47,7 @@ Launch example:
 """
 
 import os
+import sys
 
 import torch
 import torch.distributed as dist
@@ -151,6 +152,7 @@ for i in range(1, MAX_ITERS + 1):
             flush=True,
         )
 
+per_iter = 0.0
 if rank == 0 and first_after is not None and last_after is not None:
     per_iter = (first_after - last_after) / max(MAX_ITERS - 1, 1)
     print(
@@ -160,3 +162,6 @@ if rank == 0 and first_after is not None and last_after is not None:
     )
 
 dist.destroy_process_group()
+
+if rank == 0 and per_iter > 0.0:
+    sys.exit(1)

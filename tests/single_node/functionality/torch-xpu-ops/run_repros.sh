@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 export ZE_FLAT_DEVICE_HIERARCHY="${ZE_FLAT_DEVICE_HIERARCHY:-FLAT}"
@@ -16,7 +16,7 @@ run_mode() {
   echo
   echo "=== MODE=${mode} ==="
   MASTER_PORT="$port" MODE="$mode" \
-    mpiexec -n 2 -ppn 2 -env PALS_WORLD_SIZE=2 -- bash -lc '
+    mpiexec -n 2 -ppn 2 -env PALS_WORLD_SIZE=2 -env ROOT=$ROOT -- bash -lc '
       export RANK=$PALS_RANKID WORLD_SIZE=$PALS_WORLD_SIZE
       export LOCAL_RANK=$PALS_LOCAL_RANKID LOCAL_WORLD_SIZE=$PALS_LOCAL_SIZE
       python -u $ROOT/prove_list_allgather_hidden_temp.py

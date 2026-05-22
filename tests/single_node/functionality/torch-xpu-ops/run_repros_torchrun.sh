@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 export ZE_FLAT_DEVICE_HIERARCHY="${ZE_FLAT_DEVICE_HIERARCHY:-FLAT}"
@@ -14,7 +14,7 @@ run_mode() {
   echo
   echo "=== MODE=${mode} ==="
   MODE="$mode" torchrun --standalone --nnodes=1 --nproc-per-node=2 \
-    pytorch_resource_leak/xccl_empty_cache_bug_torchrun/prove_list_allgather_hidden_temp.py
+    $ROOT/prove_list_allgather_hidden_temp.py
 }
 
 run_mode list_hidden_temp

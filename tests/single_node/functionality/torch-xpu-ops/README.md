@@ -41,6 +41,3 @@ For a shorter/faster run, reduce tensor size:
 ```bash
 TENSOR_SIZE=10000000 MAX_ITERS=30 ./run_repros.sh
 ```
-
-## Run Individual Repros
-

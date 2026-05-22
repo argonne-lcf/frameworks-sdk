@@ -57,6 +57,12 @@ MODE = os.environ.get("MODE", "list_hidden_temp")
 TENSOR_SIZE = int(os.environ.get("TENSOR_SIZE", "100000000"))
 MAX_ITERS = int(os.environ.get("MAX_ITERS", "30"))
 LOG_EVERY = int(os.environ.get("LOG_EVERY", "10"))
+SKIP_EXIT_ON_FAIL = os.environ.get("SKIP_EXIT_ON_FAIL", "0").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 DTYPE = torch.bfloat16
 
 
@@ -163,5 +169,16 @@ if rank == 0 and first_after is not None and last_after is not None:
 
 dist.destroy_process_group()
 
-if rank == 0 and per_iter > 0.0:
-    sys.exit(1)
+if rank == 0:
+    if per_iter > 0.0:
+        print(
+            f"FAIL: free memory is decreasing by {per_iter:.3f}GiB/iter",
+            flush=True,
+        )
+        if not SKIP_EXIT_ON_FAIL:
+            sys.exit(1)
+    else:
+        print(
+            f"PASS: free memory did not decrease; observed memory drop {per_iter:.3f}GiB/iter",
+            flush=True,
+        )

@@ -3,7 +3,7 @@
 source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
 # 0) Only build if not already cached
-LLVM_HASH="$(curl -s "https://raw.githubusercontent.com/intel/intel-xpu-backend-for-triton/refs/heads/$FRAMEWORKS_TRITON_VERSION/cmake/llvm-hash.txt")"
+LLVM_HASH="$(curl -s "https://raw.githubusercontent.com/intel/intel-xpu-backend-for-triton/refs/heads/$FRAMEWORKS_TRITON_VERSION/cmake/llvm-info.json" | jq -r ".llvm_hash")"
 if [ -d "$FRAMEWORKS_ROOT_DIR/llvm-$LLVM_HASH" ]; then
 	echo "llvm-$LLVM_HASH already cached in $FRAMEWORKS_ROOT_DIR!" >&2
 	exit 0

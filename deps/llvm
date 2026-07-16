@@ -26,8 +26,6 @@ section_start "configure_llvm[collapsed=true]"
 # -DCMAKE_C_COMPILER="clang" \
 # -DCMAKE_CXX_COMPILER="clang++" \
  
-module load gcc/13.4.0
-
 cmake -G Ninja -S llvm -B build \
   -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_CCACHE_BUILD=OFF \

@@ -24,6 +24,7 @@ setup_build_env() {
 
 		# test out new `igc`
 		module load intel_gpu_umd_aicoe/2026.06.19
+		module load pti-gpu
 		;;
 	esac
 

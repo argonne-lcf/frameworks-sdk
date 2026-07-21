@@ -21,6 +21,9 @@ setup_build_env() {
 	*"sunspot.alcf.anl.gov")
 		# `cmake` and `ninja` are not in the system path on Sunspot
 		module load cmake ninja
+
+		# test out new `igc`
+		module load intel_gpu_umd_aicoe/2026.06.19
 		;;
 	esac
 

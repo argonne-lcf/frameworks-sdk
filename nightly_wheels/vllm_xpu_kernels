@@ -16,6 +16,94 @@ sed -i -e "/^triton-xpu$/d" requirements.txt
 
 setup_uv_venv -r requirements.txt *.whl
 
+# Coerce using C++20 for torch>=2.13
+git am <<'EOF'
+From ee528e4f8b36730ba4dcba07827b46a842bf4547 Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Wed, 22 Jul 2026 17:39:36 -0500
+Subject: [PATCH 1/2] cmake: mandate c++20 for all kernels
+
+`torch>=2.13` mandates C++20 in its headers.
+---
+ cmake/utils.cmake | 14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)
+
+diff --git a/cmake/utils.cmake b/cmake/utils.cmake
+index ba4bb67..1cb67aa 100644
+--- a/cmake/utils.cmake
++++ b/cmake/utils.cmake
+@@ -559,10 +559,6 @@ function(add_xe2_kernel_library LIBRARY_NAME)
+     set(ARG_DESTINATION "vllm_xpu_kernels")
+   endif()
+ 
+-  # Set C++ standard
+-  set(CMAKE_CXX_STANDARD 17)
+-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+-
+   # Find all source files
+   file(GLOB_RECURSE KERNEL_SOURCES "*.cpp" ${ATTN_KERNEL_SRCS_GEN})
+ 
+@@ -580,6 +576,9 @@ function(add_xe2_kernel_library LIBRARY_NAME)
+     target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
+   endif()
+ 
++  # Set C++ standard
++  set_property(TARGET ${LIBRARY_NAME} PROPERTY CXX_STANDARD 20)
++
+   # Set compile options and definitions
+   target_compile_options(${LIBRARY_NAME}
+                          PRIVATE ${SYCL_TLA_KERNELS_COMPILE_FLAGS} -fPIC)
+@@ -631,10 +630,6 @@ function(add_xe_default_kernel_library LIBRARY_NAME)
+     set(ARG_DESTINATION "vllm_xpu_kernels")
+   endif()
+ 
+-  # Set C++ standard
+-  set(CMAKE_CXX_STANDARD 17)
+-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+-
+   # Find all source files
+   file(GLOB_RECURSE KERNEL_SOURCES "*.cpp")
+ 
+@@ -651,6 +646,9 @@ function(add_xe_default_kernel_library LIBRARY_NAME)
+     target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
+   endif()
+ 
++  # Set C++ standard
++  set_property(TARGET ${LIBRARY_NAME} PROPERTY CXX_STANDARD 20)
++
+   # Set compile options and definitions
+   target_compile_options(${LIBRARY_NAME}
+                          PRIVATE ${SYCL_TLA_KERNELS_COMPILE_FLAGS} -fPIC)
+-- 
+2.50.1 (Apple Git-155)
+
+
+From f00a4175524bc9603d6e3fec3bb39616f0b8f7b9 Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Wed, 22 Jul 2026 17:50:19 -0500
+Subject: [PATCH 2/2] [HACK] cmake: remove `-Werror`
+
+---
+ CMakeLists.txt | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f3b219d..f161c72 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -231,8 +231,6 @@ message(STATUS "FetchContent base directory: ${FETCHCONTENT_BASE_DIR}")
+ # when loaded by Python.
+ set(CMAKE_INSTALL_RPATH "$ORIGIN")
+ 
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+-
+ if(VLLM_GPU_LANG STREQUAL "SYCL")
+   #
+   # For SYCL we want to use the same flags as CUDA, so we set them here. Note
+-- 
+2.50.1 (Apple Git-155)
+EOF
+
 # 2) Configure vLLM XPU kernels
 export VLLM_XPU_AOT_DEVICES="pvc"
 export VLLM_XPU_XE2_AOT_DEVICES="pvc"

@@ -1,0 +1,42 @@
+# Combined build and development requirements pytorch/2.13.0 + triton-xpu/3.7.2
+# + torchvision/0.28.0
+# Sources:
+# - PyTorch build and development requirements
+#    - https://github.com/pytorch/pytorch/blob/v2.13.0/requirements.txt
+#    - https://github.com/pytorch/pytorch/blob/v2.13.0/requirements-build.txt
+# - triton-xpu build-system requirements 
+#    - https://github.com/intel/intel-xpu-backend-for-triton/blob/v3.7.2/pyproject.toml
+# - torchvision setup.py and pyproject.toml
+     - https://github.com/pytorch/vision/blob/8fb87713a24951e639c494b0f2a8a81b5f8e33a6/setup.py#L106
+     - https://github.com/pytorch/vision/blob/main/pyproject.toml
+#
+# Build system requirements
+setuptools>=77.0.0,<82
+cmake>=3.27,<4.0
+ninja<1.13.0
+pybind11>=2.13.1 ## triton-xpu specific
+numpy
+packaging>=24.2
+pyyaml
+requests
+six
+typing-extensions>=4.15.0
+pip
+#
+# PyTorch development and packaging requirements
+build[uv]
+expecttest>=0.3.0
+filelock
+fsspec>=0.8.5
+hypothesis
+jinja2
+lintrunner; platform_machine != "s390x"
+networkx>=2.5.1
+optree>=0.13.0
+psutil
+spin
+sympy>=1.13.3
+wheel
+pyelftools ## triton-xpu specific, not mentioned anywhere!!
+## TorchVision specific requirement
+pillow>=5.3.0,!=8.3.*

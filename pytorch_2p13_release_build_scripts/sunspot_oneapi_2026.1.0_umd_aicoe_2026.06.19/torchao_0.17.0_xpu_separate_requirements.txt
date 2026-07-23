@@ -1,0 +1,28 @@
+# Extra dependencies for torchao-0.17.0 + torchdata-0.11.0 
+# To be used after torchvision_0.28.0_torch_2.13.0_triton_xpu_3.7.2_combined_requirements.txt
+# Test utilities
+pytest==9.0.3
+unittest-xml-reporting
+parameterized
+transformers
+sentencepiece # for gpt-fast tokenizer
+# For prototype features and benchmarks
+bitsandbytes # needed for testing triton quant / dequant ops for 8-bit optimizers
+matplotlib
+pandas
+fire  # QOL for commandline scripts
+tabulate  # QOL for printing tables to stdout
+tiktoken
+blobfile
+lm_eval
+diskcache
+pycocotools
+tqdm
+importlib_metadata
+# Linting
+ruff==0.11.6
+pre-commit
+## Special
+click==8.3.3 ## Needed for spin==0.18
+## Adding extra-depenedency for torchdata here as well
+smart-open

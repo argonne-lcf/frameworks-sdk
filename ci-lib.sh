@@ -21,6 +21,10 @@ setup_build_env() {
 	*"sunspot.alcf.anl.gov")
 		# `cmake` and `ninja` are not in the system path on Sunspot
 		module load cmake ninja
+
+		# test out new `igc`
+		module load intel_gpu_umd_aicoe/2026.06.19
+		module load pti-gpu
 		;;
 	esac
 
@@ -80,11 +84,8 @@ setup_uv_venv() {
 build_bdist_wheel() {
 	section_start "build_bdist_wheel[collapsed=true]"
 
-	# We directly invoke `setup.py` so we can use our custom venvs.
 	# shellcheck source=/dev/null
-	source .venv/bin/activate
-	python setup.py bdist_wheel > build_bdist_wheel.log 2>&1
-	deactivate
+	uv build --no-build-isolation --wheel > build_bdist_wheel.log 2>&1
 
 	section_end "build_bdist_wheel[collapsed=true]"
 }

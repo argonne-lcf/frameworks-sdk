@@ -16,6 +16,352 @@ sed -i -e "/^triton-xpu$/d" requirements.txt
 
 setup_uv_venv -r requirements.txt *.whl
 
+# Coerce using C++20 for torch>=2.13
+git am <<'EOF'
+From ee528e4f8b36730ba4dcba07827b46a842bf4547 Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Wed, 22 Jul 2026 17:39:36 -0500
+Subject: [PATCH 1/3] cmake: mandate c++20 for all kernels
+
+`torch>=2.13` mandates C++20 in its headers.
+---
+ cmake/utils.cmake | 14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)
+
+diff --git a/cmake/utils.cmake b/cmake/utils.cmake
+index ba4bb67..1cb67aa 100644
+--- a/cmake/utils.cmake
++++ b/cmake/utils.cmake
+@@ -559,10 +559,6 @@ function(add_xe2_kernel_library LIBRARY_NAME)
+     set(ARG_DESTINATION "vllm_xpu_kernels")
+   endif()
+ 
+-  # Set C++ standard
+-  set(CMAKE_CXX_STANDARD 17)
+-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+-
+   # Find all source files
+   file(GLOB_RECURSE KERNEL_SOURCES "*.cpp" ${ATTN_KERNEL_SRCS_GEN})
+ 
+@@ -580,6 +576,9 @@ function(add_xe2_kernel_library LIBRARY_NAME)
+     target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
+   endif()
+ 
++  # Set C++ standard
++  set_property(TARGET ${LIBRARY_NAME} PROPERTY CXX_STANDARD 20)
++
+   # Set compile options and definitions
+   target_compile_options(${LIBRARY_NAME}
+                          PRIVATE ${SYCL_TLA_KERNELS_COMPILE_FLAGS} -fPIC)
+@@ -631,10 +630,6 @@ function(add_xe_default_kernel_library LIBRARY_NAME)
+     set(ARG_DESTINATION "vllm_xpu_kernels")
+   endif()
+ 
+-  # Set C++ standard
+-  set(CMAKE_CXX_STANDARD 17)
+-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+-
+   # Find all source files
+   file(GLOB_RECURSE KERNEL_SOURCES "*.cpp")
+ 
+@@ -651,6 +646,9 @@ function(add_xe_default_kernel_library LIBRARY_NAME)
+     target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
+   endif()
+ 
++  # Set C++ standard
++  set_property(TARGET ${LIBRARY_NAME} PROPERTY CXX_STANDARD 20)
++
+   # Set compile options and definitions
+   target_compile_options(${LIBRARY_NAME}
+                          PRIVATE ${SYCL_TLA_KERNELS_COMPILE_FLAGS} -fPIC)
+-- 
+2.50.1 (Apple Git-155)
+
+
+From f00a4175524bc9603d6e3fec3bb39616f0b8f7b9 Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Wed, 22 Jul 2026 17:50:19 -0500
+Subject: [PATCH 2/3] [HACK] cmake: remove `-Werror`
+
+---
+ CMakeLists.txt | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f3b219d..f161c72 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -231,8 +231,6 @@ message(STATUS "FetchContent base directory: ${FETCHCONTENT_BASE_DIR}")
+ # when loaded by Python.
+ set(CMAKE_INSTALL_RPATH "$ORIGIN")
+ 
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+-
+ if(VLLM_GPU_LANG STREQUAL "SYCL")
+   #
+   # For SYCL we want to use the same flags as CUDA, so we set them here. Note
+-- 
+2.50.1 (Apple Git-155)
+
+
+From 82e22f171c13494317370010f4d06f91e4b5b00f Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Thu, 23 Jul 2026 09:31:08 -0500
+Subject: [PATCH 3/3] Revert "get memory info (#249)"
+
+This reverts commit 11f42aa47ff51924b3d9527cfc2bfef5fd2d98e5. Current
+Aurora driver does not support
+`ZE_STRUCTURE_TYPE_DEVICE_USABLEMEM_SIZE_EXT_PROPERTIES`.
+---
+ CMakeLists.txt                |  7 -----
+ csrc/ops.h                    |  2 --
+ csrc/torch_bindings.cpp       |  3 ---
+ csrc/utils.h                  | 15 +++--------
+ csrc/utils/mem_info.cpp       | 50 -----------------------------------
+ csrc/xpu/ops.h                |  4 ---
+ csrc/xpu/torch_bindings.cpp   |  6 -----
+ csrc/xpu/utils.cpp            | 10 -------
+ tests/test_get_memory_info.py | 34 ------------------------
+ 9 files changed, 4 insertions(+), 127 deletions(-)
+ delete mode 100644 csrc/utils/mem_info.cpp
+ delete mode 100644 tests/test_get_memory_info.py
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f161c72..b72d275 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -262,9 +262,6 @@ if(VLLM_GPU_LANG STREQUAL "SYCL")
+   set(SYCL_KERNEL_OPTIONS)
+ 
+   list(APPEND SYCL_FLAGS "-fsycl")
+-  # For l0 ops like getMemoryInfo
+-  list(APPEND SYCL_FLAGS "-lze_loader")
+-  list(APPEND SYCL_FLAGS "-Wno-unused-command-line-argument")
+ 
+   set(SYCL_COMPILE_FLAGS ${SYCL_FLAGS})
+   set(SYCL_COMPILE_FLAGS ${SYCL_COMPILE_FLAGS} "-O3" "-DNDEBUG")
+@@ -279,9 +276,6 @@ if(VLLM_GPU_LANG STREQUAL "SYCL")
+   # ============= LINK OPTIONS ==================
+   set(SYCL_LINK_FLAGS "")
+   list(APPEND SYCL_LINK_FLAGS "-fsycl")
+-  # For l0 ops like getMemoryInfo
+-  list(APPEND SYCL_LINK_FLAGS "-lze_loader")
+-  list(APPEND SYCL_LINK_FLAGS "-Wno-unused-command-line-argument")
+   set(SYCL_DEVICE_LINK_FLAGS ${SYCL_LINK_FLAGS})
+   set(SYCL_DEVICE_LINK_FLAGS
+       ${SYCL_DEVICE_LINK_FLAGS} -fsycl-max-parallel-link-jobs=16
+@@ -544,7 +538,6 @@ if(BASIC_KERNELS_ENABLED)
+       "csrc/attention/merge_attn_states.cpp"
+       "csrc/tensor_utils.cpp"
+       "csrc/utils/mem_cpy.cpp"
+-      "csrc/utils/mem_info.cpp"
+       "csrc/topk_per_row.cpp")
+   include_directories("/usr/include")
+ 
+diff --git a/csrc/ops.h b/csrc/ops.h
+index 911b56c..255937d 100644
+--- a/csrc/ops.h
++++ b/csrc/ops.h
+@@ -283,5 +283,3 @@ void merge_attn_states(
+     const torch::Tensor& prefix_lse,
+     const torch::Tensor& suffix_output,
+     const torch::Tensor& suffix_lse);
+-
+-std::tuple<int64_t, int64_t> getMemoryInfo(int64_t device_index);
+diff --git a/csrc/torch_bindings.cpp b/csrc/torch_bindings.cpp
+index 9498693..0a7f183 100644
+--- a/csrc/torch_bindings.cpp
++++ b/csrc/torch_bindings.cpp
+@@ -318,9 +318,6 @@ TORCH_LIBRARY_EXPAND(CONCAT(TORCH_EXTENSION_NAME, _cache_ops), cache_ops) {
+       "gather_and_maybe_dequant_cache",
+       torch::kXPU,
+       &gather_and_maybe_dequant_cache);
+-
+-  cache_ops.def("getMemoryInfo(int device_index) -> (int, int)");
+-  cache_ops.impl("getMemoryInfo", &getMemoryInfo);
+ }
+ 
+ REGISTER_EXTENSION(TORCH_EXTENSION_NAME)
+diff --git a/csrc/utils.h b/csrc/utils.h
+index 3bf2c7b..3ff242f 100644
+--- a/csrc/utils.h
++++ b/csrc/utils.h
+@@ -51,18 +51,11 @@ get_device_architecture(at::DeviceIndex device_index = -1) {
+   return raw_device.get_info<syclex::info::device::architecture>();
+ }
+ 
+-static inline bool is_bmg_g21(at::DeviceIndex device_index = -1) {
+-  return get_device_architecture(device_index) ==
+-         syclex::architecture::intel_gpu_bmg_g21;
+-}
+-
+-static inline bool is_bmg_g31(at::DeviceIndex device_index = -1) {
+-  return get_device_architecture(device_index) ==
+-         syclex::architecture::intel_gpu_bmg_g31;
+-}
+-
+ static inline bool is_bmg(at::DeviceIndex device_index = -1) {
+-  return is_bmg_g21(device_index) || is_bmg_g31(device_index);
++  return get_device_architecture(device_index) ==
++             syclex::architecture::intel_gpu_bmg_g21 ||
++         get_device_architecture(device_index) ==
++             syclex::architecture::intel_gpu_bmg_g31;
+ }
+ 
+ static inline bool is_pvc(at::DeviceIndex device_index = -1) {
+diff --git a/csrc/utils/mem_info.cpp b/csrc/utils/mem_info.cpp
+deleted file mode 100644
+index d9fe047..0000000
+--- a/csrc/utils/mem_info.cpp
++++ /dev/null
+@@ -1,50 +0,0 @@
+-#include <c10/xpu/XPUFunctions.h>
+-#include <level_zero/ze_api.h>
+-#include <sycl/sycl.hpp>
+-
+-#include <iostream>
+-
+-size_t getTotalMemory(ze_device_handle_t& device) {
+-  uint32_t memoryCount = 0;
+-  zeDeviceGetMemoryProperties(device, &memoryCount, nullptr);
+-  auto pMemoryProperties = new ze_device_memory_properties_t[memoryCount];
+-  for (uint32_t mem = 0; mem < memoryCount; ++mem) {
+-    pMemoryProperties[mem].stype = ZE_STRUCTURE_TYPE_DEVICE_MEMORY_PROPERTIES;
+-    pMemoryProperties[mem].pNext = nullptr;
+-  }
+-  zeDeviceGetMemoryProperties(device, &memoryCount, pMemoryProperties);
+-  size_t totalMemory = 0;
+-  for (uint32_t mem = 0; mem < memoryCount; ++mem) {
+-    totalMemory += pMemoryProperties[mem].totalSize;
+-  }
+-  delete[] pMemoryProperties;
+-
+-  return totalMemory;
+-}
+-
+-size_t getUsableMemory(ze_device_handle_t& device) {
+-  ze_device_properties_t deviceProperties{};
+-  ze_device_usablemem_size_ext_properties_t usableMemProps{};
+-
+-  usableMemProps.stype = ZE_STRUCTURE_TYPE_DEVICE_USABLEMEM_SIZE_EXT_PROPERTIES;
+-  deviceProperties.stype = ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES;
+-  deviceProperties.pNext = &usableMemProps;
+-
+-  zeDeviceGetProperties(device, &deviceProperties);
+-  return usableMemProps.currUsableMemSize;
+-}
+-
+-std::tuple<int64_t, int64_t> getMemoryInfo(int64_t device_index) {
+-  const auto& device =
+-      c10::xpu::get_raw_device(static_cast<c10::DeviceIndex>(device_index));
+-  auto level_zero_device =
+-      sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+-  const size_t free = getUsableMemory(level_zero_device);
+-  const size_t total = getTotalMemory(level_zero_device);
+-  if (total > static_cast<size_t>(std::numeric_limits<int64_t>::max()) ||
+-      free > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+-    std::cerr << "Memory size exceeds int64_t max value!" << std::endl;
+-    return {-1, -1};  // or handle this case as appropriate
+-  }
+-  return {static_cast<int64_t>(free), static_cast<int64_t>(total)};
+-}
+diff --git a/csrc/xpu/ops.h b/csrc/xpu/ops.h
+index 6a30d9e..8e4e9dc 100644
+--- a/csrc/xpu/ops.h
++++ b/csrc/xpu/ops.h
+@@ -259,10 +259,6 @@ void gdn_attention(
+     const bool reorder_input);
+ #endif
+ 
+-bool is_bmg_g21(int64_t device_index);
+-
+-bool is_bmg_g31(int64_t device_index);
+-
+ bool is_bmg(int64_t device_index);
+ 
+ bool is_pvc(int64_t device_index);
+diff --git a/csrc/xpu/torch_bindings.cpp b/csrc/xpu/torch_bindings.cpp
+index 75eca16..b2a181f 100644
+--- a/csrc/xpu/torch_bindings.cpp
++++ b/csrc/xpu/torch_bindings.cpp
+@@ -215,12 +215,6 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, xpu_ops) {
+ #endif
+ 
+   // for empty tensor functions, we don't need dispatch key like torch::kXPU
+-  xpu_ops.def("is_bmg_g21(int device_index) -> bool");
+-  xpu_ops.impl("is_bmg_g21", &is_bmg_g21);
+-
+-  xpu_ops.def("is_bmg_g31(int device_index) -> bool");
+-  xpu_ops.impl("is_bmg_g31", &is_bmg_g31);
+-
+   xpu_ops.def("is_bmg(int device_index) -> bool");
+   xpu_ops.impl("is_bmg", &is_bmg);
+ 
+diff --git a/csrc/xpu/utils.cpp b/csrc/xpu/utils.cpp
+index 8566d4b..81a3a9c 100644
+--- a/csrc/xpu/utils.cpp
++++ b/csrc/xpu/utils.cpp
+@@ -2,16 +2,6 @@
+ 
+ using namespace vllm::xpu;
+ 
+-bool is_bmg_g21(int64_t device_index = -1) {
+-  at::DeviceIndex dev_idx = device_index;
+-  return vllm::xpu::is_bmg_g21(dev_idx);
+-}
+-
+-bool is_bmg_g31(int64_t device_index = -1) {
+-  at::DeviceIndex dev_idx = device_index;
+-  return vllm::xpu::is_bmg_g31(dev_idx);
+-}
+-
+ bool is_bmg(int64_t device_index = -1) {
+   at::DeviceIndex dev_idx = device_index;
+   return vllm::xpu::is_bmg(dev_idx);
+diff --git a/tests/test_get_memory_info.py b/tests/test_get_memory_info.py
+deleted file mode 100644
+index 3aec66d..0000000
+--- a/tests/test_get_memory_info.py
++++ /dev/null
+@@ -1,34 +0,0 @@
+-# SPDX-License-Identifier: Apache-2.0
+-import pytest
+-import torch
+-
+-import vllm_xpu_kernels._C  # noqa: F401
+-import vllm_xpu_kernels._xpu_C  # noqa: F401
+-
+-DEVICES = [i for i in range(torch.xpu.device_count())]
+-
+-
+-@pytest.mark.parametrize("device", DEVICES)
+-def test_get_memory_info(device) -> None:
+-    free, total = torch.ops._C_cache_ops.getMemoryInfo(device)
+-
+-    # FIXME:
+-    # After update neo, the results of torch is changed
+-    # ref_free 24385683456
+-    # ref_total 24385683456
+-    # ->
+-    # ref_free 25429528576
+-    # ref_total 25669140480
+-    # So we use hard code to check the results
+-    # We should check the results after fixing the torch issue
+-    # ref_free, ref_total = torch.xpu.mem_get_info(device)
+-
+-    if torch.ops._xpu_C.is_bmg_g21(device):
+-        ref_total = 24385683456
+-        assert free > 0
+-        assert total == ref_total
+-
+-    elif torch.ops._xpu_C.is_bmg_g31(device):
+-        ref_total = 32530182144
+-        assert free > 0
+-        assert total == ref_total
+-- 
+2.50.1 (Apple Git-155)
+EOF
+
 # 2) Configure vLLM XPU kernels
 export VLLM_XPU_AOT_DEVICES="pvc"
 export VLLM_XPU_XE2_AOT_DEVICES="pvc"

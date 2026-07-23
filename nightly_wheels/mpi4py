@@ -6,10 +6,12 @@ source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 gen_build_dir_with_git 'https://github.com/mpi4py/mpi4py'
 setup_build_env
 
+setup_uv_venv --group build
+
 # 2) Set mpi4py configuration
 export CC='mpicc'
 export CXX='mpicxx'
 
 # 3) Build & Archive
-uv build
+build_bdist_wheel
 artifact_out "mpi4py*.whl"

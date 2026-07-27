@@ -1,0 +1,12 @@
+--- CMakeLists.orig.txt	2026-07-23 02:00:15.000000000 +0000
++++ CMakeLists.txt	2026-07-23 02:01:06.000000000 +0000
+@@ -19,6 +19,9 @@
+ # free.
+ add_link_options("LINKER:--push-state,--no-as-needed" "-latomic" "LINKER:--pop-state")
+ 
++set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
++set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
++
+ # Options
+ option(USE_NCCL "Whether to build NCCL or not" ON)
+ option(USE_NCCLX "Whether to build NCCLX or not" ON)

@@ -1,0 +1,15 @@
+--- glog.cmake.orig	2026-07-23 00:51:15.000000000 +0000
++++ glog.cmake	2026-07-23 00:17:21.000000000 +0000
+@@ -21,10 +21,12 @@
+     set_target_properties(glog::glog PROPERTIES
+         INTERFACE_INCLUDE_DIRECTORIES "${CONDA_INCLUDE}"
+         INTERFACE_LINK_LIBRARIES "${_GLOG_LIB}"
++        INTERFACE_COMPILE_DEFINITIONS "GLOG_USE_GLOG_EXPORT"
+     )
+     add_library(glog::glog_headers INTERFACE IMPORTED GLOBAL)
+     set_target_properties(glog::glog_headers PROPERTIES
+         INTERFACE_INCLUDE_DIRECTORIES "${CONDA_INCLUDE}"
++        INTERFACE_COMPILE_DEFINITIONS "GLOG_USE_GLOG_EXPORT"
+     )
+     message(STATUS "Using glog: ${_GLOG_LIB}")
+ else()

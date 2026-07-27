@@ -1,0 +1,3 @@
+./torchcomms/CMakeLists.txt.diff
+./torchcomms/comms/torchcomms/xccl/xccl_CMakeLists.diff
+./torchcomms/comms/torchcomms/cmake/third_party/glog.cmake.diff

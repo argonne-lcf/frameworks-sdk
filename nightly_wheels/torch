@@ -12,10 +12,7 @@ artifact_in "triton-*.whl"
 setup_uv_venv --group dev pip mkl-static mkl-include *.whl
 
 # 2) Set PyTorch build configuration
-CC="$(which gcc)"
-export CC
-CXX="$(which g++)"
-export CXX
+export WERROR=0
 export REL_WITH_DEB_INFO=1
 export USE_CUDA=0
 export USE_ROCM=0
@@ -33,10 +30,8 @@ export USE_NUMA=0
 export USE_MPI=1
 export USE_XPU=1
 export USE_XCCL=1
-export INTEL_MKL_DIR="$MKLROOT"
 export USE_AOT_DEVLIST='pvc'
 export TORCH_XPU_ARCH_LIST='pvc'
-export OCLOC_VERSION=24.39.1
 
 # 3) Build & Archive
 build_bdist_wheel

@@ -13,11 +13,7 @@ sed -i -e "/^torch==.*$/d" requirements/build/cuda.txt
 
 setup_uv_venv -r requirements/build/cuda.txt *.whl
 
-# 2) Set IPEX build configuration
-CC="$(which gcc)"
-export CC
-CXX="$(which g++)"
-export CXX
+# 2) Set vLLM build configuration
 export VLLM_TARGET_DEVICE=xpu
 
 # 3) Build & Archive

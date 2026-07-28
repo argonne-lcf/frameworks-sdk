@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/intel/pti-gpu'
+setup_build_env
+
+# 2) Set build configuration for pti-gpu
+section_start "configure_pti-gpu[collapsed=true]"
+
+cd sdk
+cmake -S . \
+	-B build \
+	-DCMAKE_BUILD_TYPE=Release > configure_pti-gpu.log 2>&1 || {
+	artifact_out "configure_pti-gpu.log"
+	exit 1
+}
+artifact_out "configure_pti-gpu.log"
+
+section_end "configure_pti-gpu[collapsed=true]"
+
+# 3) Build & Archive
+section_start "build_pti-gpu[collapsed=true]"
+
+cmake --install build \
+	--config Release \
+	--prefix "$FRAMEWORKS_RUN_DIR/pti-gpu" > build_pti-gpu.log 2>&1 || {
+	artifact_out "build_pti-gpu.log"
+	exit 1
+}
+artifact_out "build_pti-gpu.log"
+
+section_end "build_pti-gpu[collapsed=true]"

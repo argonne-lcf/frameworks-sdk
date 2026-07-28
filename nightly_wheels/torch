@@ -52,6 +52,78 @@ index b027d63f1a7..cbe3e9fc1af 100644
 2.50.1 (Apple Git-155)
 EOF
 
+# Patch torch-xpu-ops to support oneAPI
+TORCH_XPU_OPS_COMMIT="$(cat third_party/xpu.txt)"
+git clone 'https://github.com/intel/torch-xpu-ops.git' third_party/torch-xpu-ops
+pushd third_party/torch-xpu-ops
+git fetch origin "$TORCH_XPU_OPS_COMMIT"
+git checkout FETCH_HEAD
+git am <<'EOL'
+From 94cedda6de8da47b74b64d77a3e7758839610828 Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Mon, 27 Jul 2026 22:29:27 -0500
+Subject: [PATCH] cmake: support `IntelLLVM`
+
+---
+ CMakeLists.txt         | 8 ++++----
+ cmake/BuildFlags.cmake | 6 +++---
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index bdee938c..efb67683 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -66,10 +66,10 @@ if(USE_XCCL)
+ endif()
+ 
+ set(USE_SYCLTLA ON)
+-if(WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0)
+-  set(USE_SYCLTLA OFF)
+-  message(WARNING "SYCL-TLA is not build as it only supports GCC >= 13.0 as CXX Compiler on Linux Platform!")
+-endif()
++# if(WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0)
++#   set(USE_SYCLTLA OFF)
++#   message(WARNING "SYCL-TLA is not build as it only supports GCC >= 13.0 as CXX Compiler on Linux Platform!")
++# endif()
+ 
+ if(USE_SYCLTLA)
+   include(${TORCH_XPU_OPS_ROOT}/cmake/SYCLTLA.cmake)
+diff --git a/cmake/BuildFlags.cmake b/cmake/BuildFlags.cmake
+index 9629dc86..795648ae 100644
+--- a/cmake/BuildFlags.cmake
++++ b/cmake/BuildFlags.cmake
+@@ -31,7 +31,7 @@ function(CHECK_SYCL_FLAG FLAG VARIABLE_NAME)
+ endfunction()
+ 
+ macro(set_build_flags)
+- set(_TORCH_XPU_OPS_SUPPORTED_COMPILERS "GNU" "MSVC")
++  set(_TORCH_XPU_OPS_SUPPORTED_COMPILERS "GNU" "MSVC" "IntelLLVM")
+   if(NOT CMAKE_CXX_COMPILER_ID IN_LIST _TORCH_XPU_OPS_SUPPORTED_COMPILERS)
+     message(WARNING "Not compiling with XPU. Currently only support GCC compiler on Linux and MSVC compiler on Windows as CXX compiler.")
+     return()
+@@ -71,7 +71,7 @@ macro(set_build_flags)
+     elseif(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+       list(APPEND SYCL_HOST_FLAGS /O2 /Z7)
+     endif()
+-  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
++  else()
+     list(APPEND SYCL_HOST_FLAGS -fPIC)
+     list(APPEND SYCL_HOST_FLAGS -std=${CPP_STD})
+     list(APPEND SYCL_HOST_FLAGS -Wunused-variable)
+@@ -140,7 +140,7 @@ macro(set_build_flags)
+     list(APPEND SYCL_KERNEL_OPTIONS /Qftz-)
+     # Suppress warnings about dllexport.
+     list(APPEND SYCL_KERNEL_OPTIONS -Wno-ignored-attributes)
+-  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
++  else()
+     list(APPEND SYCL_KERNEL_OPTIONS -std=${CPP_STD})
+     list(APPEND SYCL_KERNEL_OPTIONS -Wno-absolute-value)
+     # -fma which we used before is an alias used for -ffp-contract=fast for compatibility reasons
+-- 
+2.50.1 (Apple Git-155)
+EOL
+popd
+
 # 2) Set PyTorch build configuration
 export WERROR=0
 export REL_WITH_DEB_INFO=1

@@ -8,37 +8,6 @@ setup_build_env
 
 artifact_in "torch-*.whl"
 
-# Patch `mwaitintrin.h` inclusion
-git am <<'EOF'
-From 02a92e76a875a6e34ff5d1b9a7f4cb936b741c02 Mon Sep 17 00:00:00 2001
-From: Ethan Wong <ewong@anl.gov>
-Date: Tue, 28 Jul 2026 08:23:17 -0500
-Subject: [PATCH] spinloop: include `x86intrin.h` for MWAITX
-
-`clang` has an error guard on including `mwaitxintrin.h` independently
-of `x86intrin.h`. Since the latter is a superset of the former, we can
-just include that instead.
----
- csrc/spinloop.cpp | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/csrc/spinloop.cpp b/csrc/spinloop.cpp
-index c29e48a5f..3285b9a3d 100644
---- a/csrc/spinloop.cpp
-+++ b/csrc/spinloop.cpp
-@@ -7,7 +7,7 @@ extern "C" {
- 
- #if defined(__i386__) || defined(__x86_64__)
-   #include <cpuid.h>
--  #include <mwaitxintrin.h>
-+  #include <x86intrin.h>
- #endif
- 
- #if defined(CLOCK_MONOTONIC_RAW)
--- 
-2.50.1 (Apple Git-155)
-EOF
-
 # Remove torch version requirement
 sed -i -e "/^torch==.*$/d" requirements/build/cuda.txt
 

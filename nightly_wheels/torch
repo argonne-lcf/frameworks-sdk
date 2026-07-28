@@ -59,10 +59,49 @@ pushd third_party/torch-xpu-ops
 git fetch origin "$TORCH_XPU_OPS_COMMIT"
 git checkout FETCH_HEAD
 git am <<'EOL'
-From 94cedda6de8da47b74b64d77a3e7758839610828 Mon Sep 17 00:00:00 2001
+From b5744c10b5f63657319d7d4bdb312754353c36db Mon Sep 17 00:00:00 2001
+From: "Yu, Guangye" <guangye.yu@intel.com>
+Date: Tue, 28 Jul 2026 17:21:30 +0800
+Subject: [PATCH 1/2] Fix separate ops build failure due to Sleep.cpp (#4715)
+
+# Motivation
+
+Fix the broken build with `BUILD_SEPARATE_OPS=1` introduced by
+https://github.com/intel/torch-xpu-ops/pull/4385
+---
+ src/BuildOnLinux.cmake | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/src/BuildOnLinux.cmake b/src/BuildOnLinux.cmake
+index 466f782f..72fb1fcb 100644
+--- a/src/BuildOnLinux.cmake
++++ b/src/BuildOnLinux.cmake
+@@ -40,7 +40,16 @@ if(BUILD_SEPARATE_OPS)
+       ${sycl_lib}
+       SHARED
+       SYCL_SOURCES ${sycl_src})
+-    target_link_libraries(torch_xpu_ops PUBLIC ${sycl_lib})
++
++    # Sleep.cpp provides at::xpu::sleep, used by libtorch_python but not by any
++    # operator in libtorch_xpu. Since no symbol is referenced within
++    # libtorch_xpu, --as-needed drops it, leaving at::xpu::sleep unresolved at
++    # load time. Force-keep it as a NEEDED dependency.
++    if(name STREQUAL "Sleep")
++      target_link_libraries(torch_xpu_ops PUBLIC "-Wl,--no-as-needed" ${sycl_lib} "-Wl,--as-needed")
++    else()
++      target_link_libraries(torch_xpu_ops PUBLIC ${sycl_lib})
++    endif()
+     list(APPEND TORCH_XPU_OPS_LIBRARIES ${sycl_lib})
+ 
+     # Decouple with PyTorch cmake definition.
+-- 
+2.50.1 (Apple Git-155)
+
+
+From b6f5a976d18b23c14bfa6885a33319513cbfff4b Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Mon, 27 Jul 2026 22:29:27 -0500
-Subject: [PATCH] cmake: support `IntelLLVM`
+Subject: [PATCH 2/2] cmake: support `IntelLLVM`
 
 ---
  CMakeLists.txt         | 8 ++++----

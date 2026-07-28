@@ -58,7 +58,7 @@ include:
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: torch
-      needs: [triton]
+      needs: [triton, pti-gpu]
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: intel_extension_for_pytorch
@@ -93,6 +93,18 @@ llvm:
   extends: .common-runner
   script:
     - ./deps/llvm
+  artifacts:
+    when: always
+    expire_in: never
+    paths:
+      - "*.log"
+
+# Updated `pti-gpu` build
+pti-gpu:
+  stage: build
+  extends: .common-runner
+  script:
+    - ./deps/pti-gpu
   artifacts:
     when: always
     expire_in: never

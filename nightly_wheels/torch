@@ -11,6 +11,41 @@ artifact_in "triton-*.whl"
 # Must use uv-managed python for development headers
 setup_uv_venv --group dev pip mkl-static mkl-include *.whl
 
+# Patch OpenMP flag failure
+git am <<'EOF'
+From b4bdb5ec6901174f3c059e881bd1a479097dd24c Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Mon, 27 Jul 2026 19:32:12 -0500
+Subject: [PATCH] cmake/openmp: add flag check for IntelLLVM
+
+Newer versions of oneAPI use "IntelLLVM" as the compiler ID. Currently,
+cmake will fail to set the appropriate OpenMP flag, causing trivial
+build errors on submodule dependencies.
+---
+ cmake/Modules/FindOpenMP.cmake | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/cmake/Modules/FindOpenMP.cmake b/cmake/Modules/FindOpenMP.cmake
+index b027d63f1a7..cbe3e9fc1af 100644
+--- a/cmake/Modules/FindOpenMP.cmake
++++ b/cmake/Modules/FindOpenMP.cmake
+@@ -119,6 +119,12 @@ function(_OPENMP_FLAG_CANDIDATES LANG)
+     else()
+       set(OMP_FLAG_Intel "-qopenmp")
+     endif()
++    if(CMAKE_${LANG}_COMPILER_ID STREQUAL "IntelLLVM" AND
++      "x${CMAKE_${LANG}_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC")
++      set(OMP_FLAG_IntelLLVM "-Qiopenmp")
++    else()
++      set(OMP_FLAG_IntelLLVM "-fiopenmp")
++    endif()
+     set(OMP_FLAG_MIPSpro "-mp")
+     if(__header_dir MATCHES ".*Microsoft Visual Studio.*")
+       # MSVC header. No need to pass it as additional include.
+-- 
+2.50.1 (Apple Git-155)
+EOF
+
 # 2) Set PyTorch build configuration
 export WERROR=0
 export REL_WITH_DEB_INFO=1

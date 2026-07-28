@@ -18,7 +18,7 @@ setup_uv_venv -r requirements.txt *.whl
 
 # Coerce using C++20 for torch>=2.13
 git am <<'EOF'
-From ee528e4f8b36730ba4dcba07827b46a842bf4547 Mon Sep 17 00:00:00 2001
+From 893c48c42be4b787bb559050300cda1e79a8fe7a Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Wed, 22 Jul 2026 17:39:36 -0500
 Subject: [PATCH 1/3] cmake: mandate c++20 for all kernels
@@ -78,7 +78,7 @@ index ba4bb67..1cb67aa 100644
 2.50.1 (Apple Git-155)
 
 
-From f00a4175524bc9603d6e3fec3bb39616f0b8f7b9 Mon Sep 17 00:00:00 2001
+From d8c757b3be2a62916da7082872ab6d1ffea0672a Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Wed, 22 Jul 2026 17:50:19 -0500
 Subject: [PATCH 2/3] [HACK] cmake: remove `-Werror`
@@ -88,7 +88,7 @@ Subject: [PATCH 2/3] [HACK] cmake: remove `-Werror`
  1 file changed, 2 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f3b219d..f161c72 100644
+index 828257b..8247b27 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -231,8 +231,6 @@ message(STATUS "FetchContent base directory: ${FETCHCONTENT_BASE_DIR}")
@@ -104,7 +104,7 @@ index f3b219d..f161c72 100644
 2.50.1 (Apple Git-155)
 
 
-From 82e22f171c13494317370010f4d06f91e4b5b00f Mon Sep 17 00:00:00 2001
+From bb98e11bbcea28df2d50e3944103dba6072ce6dd Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Thu, 23 Jul 2026 09:31:08 -0500
 Subject: [PATCH 3/3] Revert "get memory info (#249)"
@@ -127,7 +127,7 @@ Aurora driver does not support
  delete mode 100644 tests/test_get_memory_info.py
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f161c72..b72d275 100644
+index 8247b27..344564e 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -262,9 +262,6 @@ if(VLLM_GPU_LANG STREQUAL "SYCL")
@@ -159,20 +159,20 @@ index f161c72..b72d275 100644
    include_directories("/usr/include")
  
 diff --git a/csrc/ops.h b/csrc/ops.h
-index 911b56c..255937d 100644
+index 4e6b0bf..9dd7c8a 100644
 --- a/csrc/ops.h
 +++ b/csrc/ops.h
-@@ -283,5 +283,3 @@ void merge_attn_states(
-     const torch::Tensor& prefix_lse,
-     const torch::Tensor& suffix_output,
-     const torch::Tensor& suffix_lse);
+@@ -285,5 +285,3 @@ void merge_attn_states(
+     const torch::Tensor& suffix_lse,
+     std::optional<int64_t> prefill_tokens_with_context = std::nullopt,
+     const std::optional<torch::Tensor>& output_scale = std::nullopt);
 -
 -std::tuple<int64_t, int64_t> getMemoryInfo(int64_t device_index);
 diff --git a/csrc/torch_bindings.cpp b/csrc/torch_bindings.cpp
-index 9498693..0a7f183 100644
+index 17ff0c2..4cc786f 100644
 --- a/csrc/torch_bindings.cpp
 +++ b/csrc/torch_bindings.cpp
-@@ -318,9 +318,6 @@ TORCH_LIBRARY_EXPAND(CONCAT(TORCH_EXTENSION_NAME, _cache_ops), cache_ops) {
+@@ -320,9 +320,6 @@ TORCH_LIBRARY_EXPAND(CONCAT(TORCH_EXTENSION_NAME, _cache_ops), cache_ops) {
        "gather_and_maybe_dequant_cache",
        torch::kXPU,
        &gather_and_maybe_dequant_cache);

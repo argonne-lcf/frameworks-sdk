@@ -10,13 +10,6 @@ artifact_in "torch-*.whl"
 
 setup_uv_venv -r requirements.txt pip *.whl
 
-# 2) Set IPEX build configuration
-CC="$(which gcc)"
-export CC
-CXX="$(which g++)"
-export CXX
-export INTELONEAPIROOT="$ONEAPI_ROOT"
-
-# 3) Build & Archive
+# 2) Build & Archive
 build_bdist_wheel
 artifact_out "intel_extension_for_pytorch-*.whl"

@@ -11,6 +11,12 @@ artifact_in "triton-*.whl"
 # Must use uv-managed python for development headers
 setup_uv_venv --group dev pip mkl-static mkl-include *.whl
 
+# Use built pti-gpu
+export C_INCLUDE_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/include:$C_INCLUDE_PATH"
+export CPLUS_INCLUDE_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/include:$CPLUS_INCLUDE_PATH"
+export LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LIBRARY_PATH"
+export Pti_DIR="$FRAMEWORKS_RUN_DIR/pti-gpu/lib/cmake/pti"
+
 # Patch OpenMP flag failure
 git am <<'EOF'
 From b4bdb5ec6901174f3c059e881bd1a479097dd24c Mon Sep 17 00:00:00 2001

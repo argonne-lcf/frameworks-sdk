@@ -123,6 +123,58 @@ index 9629dc86..795648ae 100644
 2.50.1 (Apple Git-155)
 EOL
 popd
+git am <<'EOL'
+From 3d843079c8429068a41ec9647d6732ba2fe485f0 Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Mon, 27 Jul 2026 23:31:37 -0500
+Subject: [PATCH] caffe2: don't checkout existing `torch-xpu-ops`
+
+---
+ caffe2/CMakeLists.txt | 28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index abe7f74a656..b92a065b251 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -1199,20 +1199,20 @@ if(USE_XPU)
+     if(NOT _exitcode EQUAL 0)
+       message(FATAL_ERROR "Fail to clone ${TORCH_XPU_OPS_REPO_URL}")
+     endif()
+-  endif()
+-  execute_process(
+-    COMMAND git fetch --quiet
+-    WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
+-    RESULT_VARIABLE _exitcode)
+-  if(NOT _exitcode EQUAL 0)
+-    message(FATAL_ERROR "Fail to fetch ${TORCH_XPU_OPS_REPO_URL}")
+-  endif()
+-  execute_process(
+-    COMMAND git checkout --quiet ${TORCH_XPU_OPS_COMMIT}
+-    WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
+-    RESULT_VARIABLE _exitcode)
+-  if(NOT _exitcode EQUAL 0)
+-    message(FATAL_ERROR "Fail to checkout ${TORCH_XPU_OPS_REPO_URL} to ${TORCH_XPU_OPS_COMMIT}")
++    execute_process(
++      COMMAND git fetch --quiet
++      WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
++      RESULT_VARIABLE _exitcode)
++    if(NOT _exitcode EQUAL 0)
++      message(FATAL_ERROR "Fail to fetch ${TORCH_XPU_OPS_REPO_URL}")
++    endif()
++    execute_process(
++      COMMAND git checkout --quiet ${TORCH_XPU_OPS_COMMIT}
++      WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
++      RESULT_VARIABLE _exitcode)
++    if(NOT _exitcode EQUAL 0)
++      message(FATAL_ERROR "Fail to checkout ${TORCH_XPU_OPS_REPO_URL} to ${TORCH_XPU_OPS_COMMIT}")
++    endif()
+   endif()
+ 
+   set(TORCH_XPU_OPS_INCLUDE_DIRS
+-- 
+2.50.1 (Apple Git-155)
+EOL
 
 # 2) Set PyTorch build configuration
 export WERROR=0

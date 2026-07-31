@@ -52,6 +52,487 @@ index b027d63f1a7..cbe3e9fc1af 100644
 2.50.1 (Apple Git-155)
 EOF
 
+# Patch SYCL version guard drop
+git am -3 <<'EOL'
+From ea27c964bdbcce19177c03aa0cee285793c9995a Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Fri, 31 Jul 2026 10:37:57 -0500
+Subject: [PATCH 1/2] Revert "Drop sycl compiler guard less than 2026 for XPU
+ (#191470)"
+
+This reverts commit 15d589c8f6dc7278dee87552ac1ce0ee15d8232d.
+---
+ c10/xpu/XPUDeviceProp.h   |  2 ++
+ c10/xpu/XPUFunctions.cpp  |  7 +++++++
+ cmake/public/xpu.cmake    | 10 +++++++++-
+ test/test_xpu.py          |  9 +++++----
+ torch/csrc/xpu/Module.cpp |  7 ++++++-
+ 5 files changed, 29 insertions(+), 6 deletions(-)
+
+diff --git a/c10/xpu/XPUDeviceProp.h b/c10/xpu/XPUDeviceProp.h
+index 32e76ee3c89..7648fc8444a 100644
+--- a/c10/xpu/XPUDeviceProp.h
++++ b/c10/xpu/XPUDeviceProp.h
+@@ -223,8 +223,10 @@ struct C10_XPU_API DeviceProp{
+     // ext properties.
+     AT_FORALL_XPU_EXT_DEVICE_PROPERTIES(DEFINE_EXT_DEVICE_PROP)
+ 
++#if SYCL_COMPILER_VERSION >= 20260000
+     // device aspects.
+     DEFINE_DEVICE_ASPECT(is_integrated_gpu)
++#endif
+ 
+     // device has aspects.
+     AT_FORALL_XPU_DEVICE_ASPECT(DEFINE_DEVICE_HAS_ASPECT)
+diff --git a/c10/xpu/XPUFunctions.cpp b/c10/xpu/XPUFunctions.cpp
+index b52a576aacd..48610019041 100644
+--- a/c10/xpu/XPUFunctions.cpp
++++ b/c10/xpu/XPUFunctions.cpp
+@@ -43,7 +43,12 @@ void enumDevices(std::vector<std::unique_ptr<sycl::device>>& devices) {
+   // See Note [Device Management] for more details.
+   auto platform_list = sycl::platform::get_platforms();
+   auto is_igpu = [](const sycl::device& device) {
++#if SYCL_COMPILER_VERSION < 20260000
++    // Generally, iGPUs share a unified memory subsystem with the host.
++    return device.get_info<sycl::info::device::host_unified_memory>();
++#else
+     return device.has(sycl::aspect::ext_oneapi_is_integrated_gpu);
++#endif
+   };
+ 
+   // Check if a platform contains at least one GPU (either iGPU or dGPU).
+@@ -184,7 +189,9 @@ void initDeviceProperties(DeviceProp* device_prop, DeviceIndex device) {
+ 
+   AT_FORALL_XPU_EXT_DEVICE_PROPERTIES(ASSIGN_EXT_DEVICE_PROP);
+ 
++#if SYCL_COMPILER_VERSION >= 20260000
+   ASSIGN_DEVICE_ASPECT(is_integrated_gpu)
++#endif
+ 
+   AT_FORALL_XPU_DEVICE_ASPECT(ASSIGN_DEVICE_HAS_ASPECT);
+ 
+diff --git a/cmake/public/xpu.cmake b/cmake/public/xpu.cmake
+index dfa9183596f..25eb968fe93 100644
+--- a/cmake/public/xpu.cmake
++++ b/cmake/public/xpu.cmake
+@@ -72,7 +72,15 @@ string(APPEND XPU_HOST_CXX_FLAGS " -DUSE_XPU")
+ string(APPEND XPU_HOST_CXX_FLAGS " -DSYCL_COMPILER_VERSION=${SYCL_COMPILER_VERSION}")
+ 
+ if(DEFINED ENV{XPU_ENABLE_KINETO})
+-  set(XPU_ENABLE_KINETO $ENV{XPU_ENABLE_KINETO})
++  set(XPU_ENABLE_KINETO TRUE)
++else()
++  set(XPU_ENABLE_KINETO FALSE)
++endif()
++
++if(WIN32)
++  if(${SYCL_COMPILER_VERSION} GREATER_EQUAL 20250101)
++    set(XPU_ENABLE_KINETO TRUE)
++  endif()
+ else()
+   set(XPU_ENABLE_KINETO TRUE)
+ endif()
+diff --git a/test/test_xpu.py b/test/test_xpu.py
+index 75f24be2044..0ac59dcd3dd 100644
+--- a/test/test_xpu.py
++++ b/test/test_xpu.py
+@@ -179,10 +179,11 @@ class TestXpu(TestCase):
+             len(str(device_properties.uuid)), 36
+         )  # xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+         self.assertEqual(len(device_properties.uuid.bytes), 16)
+-        self.assertEqual(
+-            device_properties.is_integrated_gpu,
+-            device_capability["is_integrated_gpu"],
+-        )
++        if int(torch.version.xpu) >= 20260000:
++            self.assertEqual(
++                device_properties.is_integrated_gpu,
++                device_capability["is_integrated_gpu"],
++            )
+ 
+     def test_get_device_capability(self):
+         device_capability = torch.xpu.get_device_capability()
+diff --git a/torch/csrc/xpu/Module.cpp b/torch/csrc/xpu/Module.cpp
+index 34446e34a8c..c0309e49224 100644
+--- a/torch/csrc/xpu/Module.cpp
++++ b/torch/csrc/xpu/Module.cpp
+@@ -348,7 +348,9 @@ static void registerXpuDeviceProperties(PyObject* module) {
+       ._(has_subgroup_2d_block_io)
+ 
+   THXP_FORALL_DEVICE_PROPERTIES(DEFINE_READONLY_MEMBER)
++#if SYCL_COMPILER_VERSION >= 20260000
+       .def_readonly("is_integrated_gpu", &DeviceProp::is_integrated_gpu)
++#endif
+       .def_readonly("total_memory", &DeviceProp::global_mem_size)
+       // TODO: Expose cache size by level when available from SYCL
+       .def_readonly("last_level_cache_size", &DeviceProp::global_mem_cache_size)
+@@ -385,7 +387,10 @@ static void registerXpuDeviceProperties(PyObject* module) {
+                    << "], has_fp16=" << prop.has_fp16
+                    << ", has_fp64=" << prop.has_fp64
+                    << ", has_atomic64=" << prop.has_atomic64
+-                   << ", is_integrated_gpu=" << prop.is_integrated_gpu << ")";
++#if SYCL_COMPILER_VERSION >= 20260000
++                   << ", is_integrated_gpu=" << prop.is_integrated_gpu
++#endif
++                   << ')';
+             return std::move(stream).str();
+           });
+ }
+-- 
+2.50.1 (Apple Git-155)
+
+
+From ea1d8397fcbfe9afe34aa52269ea1e6542dd6f4d Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Mon, 3 Aug 2026 11:42:03 -0500
+Subject: [PATCH 2/2] Revert "[xpu] Add IPC memory handle sharing support to
+ XPUCachingAllocator (#188789)"
+
+This reverts commit 400aea8bf4d40d570b6b009ced07cb9da5e9e7a7.
+---
+ c10/xpu/XPUCachingAllocator.cpp           | 133 ----------------------
+ c10/xpu/XPUCachingAllocator.h             |   9 --
+ c10/xpu/test/CMakeLists.txt               |   1 -
+ c10/xpu/test/impl/XPUAllocatorIPCTest.cpp | 115 -------------------
+ 4 files changed, 258 deletions(-)
+ delete mode 100644 c10/xpu/test/impl/XPUAllocatorIPCTest.cpp
+
+diff --git a/c10/xpu/XPUCachingAllocator.cpp b/c10/xpu/XPUCachingAllocator.cpp
+index f6eca36944b..9618419800d 100644
+--- a/c10/xpu/XPUCachingAllocator.cpp
++++ b/c10/xpu/XPUCachingAllocator.cpp
+@@ -505,9 +505,6 @@ class RingBuffer {
+   std::vector<T>* alloc_trace;
+ };
+ 
+-static char SHAREABLE_HANDLE_VERSION = 1;
+-enum ShareableHandleType : char { SHAREABLE_XPU_MALLOC = 'c' };
+-
+ } // anonymous namespace
+ 
+ class DeviceCachingAllocator {
+@@ -1842,38 +1839,6 @@ class DeviceCachingAllocator {
+     return it->second->use_count;
+   }
+ 
+-  ShareableHandle shareIpcHandle(Block* block) {
+-    std::lock_guard<std::recursive_mutex> lock(mutex);
+-#ifdef _WIN32
+-    TORCH_CHECK(false, "IPC sharing is not supported on Windows.");
+-#endif
+-    std::ostringstream ss;
+-    ss.put(SHAREABLE_HANDLE_VERSION);
+-    ptrdiff_t offset = 0;
+-    TORCH_CHECK(
+-        !block->expandable_segment,
+-        "expandable segments are not supported for IPC sharing.");
+-    ss.put(SHAREABLE_XPU_MALLOC);
+-    Block* base_block = block;
+-    while (base_block->prev) {
+-      base_block = base_block->prev;
+-    }
+-    offset = static_cast<const char*>(block->ptr) -
+-        static_cast<const char*>(base_block->ptr);
+-    sycl::ext::oneapi::experimental::ipc_memory::handle handle =
+-        sycl::ext::oneapi::experimental::ipc_memory::get(
+-            base_block->ptr, c10::xpu::get_device_context());
+-    sycl::ext::oneapi::experimental::ipc_memory::handle_data_t handle_data =
+-        handle.data();
+-    TORCH_INTERNAL_ASSERT(
+-        handle_data.size() <= std::numeric_limits<char>::max(),
+-        "IPC handle size exceeds maximum allowed size.");
+-    ss.put(static_cast<char>(handle_data.size()));
+-    ss.write(
+-        reinterpret_cast<const char*>(handle_data.data()), handle_data.size());
+-    return ShareableHandle{.offset = offset, .handle = ss.str()};
+-  }
+-
+   // Called by XPUGraph::capture_begin
+   void beginAllocateToPool(
+       MempoolId_t mempool_id,
+@@ -1974,58 +1939,6 @@ class NativeCachingAllocator : public XPUAllocator {
+   ska::flat_hash_map<void*, Block*> allocated_blocks;
+   c10::ApproximateClockToUnixTimeConverter clock_converter;
+ 
+-  // IPC handle cache: maps a shareable handle string to its opened device
+-  // pointer, ensuring each handle is opened at most once per process.
+-  struct MemHandleCacheEntry {
+-    MemHandleCacheEntry(c10::DeviceIndex device, std::string& handle) {
+-#ifdef _WIN32
+-      TORCH_CHECK(false, "IPC sharing is not supported on Windows.");
+-#endif
+-      std::istringstream ss(handle);
+-      auto version = ss.get();
+-      TORCH_CHECK(
+-          version <= SHAREABLE_HANDLE_VERSION,
+-          "received sharable handle from a future version of torch that this version does not know how to handle.");
+-      int type = ss.get();
+-      TORCH_CHECK(
+-          type == SHAREABLE_XPU_MALLOC,
+-          "unexpected or illformed shareable handle type.");
+-      auto handle_size = static_cast<size_t>(ss.get());
+-      sycl::ext::oneapi::experimental::ipc_memory::handle_data_t handle_data(
+-          handle_size);
+-      ss.read(
+-          reinterpret_cast<char*>(handle_data.data()),
+-          static_cast<std::streamsize>(handle_size));
+-
+-      xpu_ipc_ptr = sycl::ext::oneapi::experimental::ipc_memory::open(
+-          handle_data,
+-          c10::xpu::get_device_context(),
+-          c10::xpu::get_raw_device(device));
+-    }
+-
+-    // clear() must be called explicitly to release IPC resources. Using a
+-    // destructor would risk calling ipc_memory::close after the SYCL runtime
+-    // has already shut down during process exit.
+-    void clear() {
+-      if (xpu_ipc_ptr) {
+-        sycl::ext::oneapi::experimental::ipc_memory::close(
+-            xpu_ipc_ptr, c10::xpu::get_device_context());
+-        xpu_ipc_ptr = nullptr;
+-      }
+-    }
+-
+-    void* ptr() {
+-      return xpu_ipc_ptr;
+-    }
+-
+-    std::weak_ptr<void> wp;
+-
+-   private:
+-    void* xpu_ipc_ptr{nullptr};
+-  };
+-  alignas(hardware_destructive_interference_size) std::mutex ipc_mutex;
+-  ska::flat_hash_map<std::string, MemHandleCacheEntry> ipc_handle_cache;
+-
+   void add_allocated_block(Block* block) {
+     std::lock_guard<std::mutex> lock(mutex);
+     allocated_blocks[block->ptr] = block;
+@@ -2255,44 +2168,6 @@ class NativeCachingAllocator : public XPUAllocator {
+     }
+   }
+ 
+-  ShareableHandle shareIpcHandle(void* ptr) {
+-    Block* block = get_allocated_block(ptr);
+-    TORCH_CHECK(block, "invalid device pointer: ", ptr);
+-    return device_allocators[block->device]->shareIpcHandle(block);
+-  }
+-
+-  std::shared_ptr<void> getIpcDevPtr(std::string handle) {
+-    std::lock_guard<std::mutex> lock(ipc_mutex);
+-
+-    auto iter = ipc_handle_cache.find(handle);
+-    if (iter != ipc_handle_cache.end()) {
+-      auto devptr = iter->second.wp.lock();
+-      TORCH_INTERNAL_ASSERT(
+-          devptr,
+-          "ipc_handle_cache entry found but shared_ptr already expired.");
+-      return devptr;
+-    }
+-    c10::DeviceIndex curr_device = c10::xpu::current_device();
+-    auto inserted = ipc_handle_cache.insert(
+-        iter, {handle, MemHandleCacheEntry(curr_device, handle)});
+-    auto sp = std::shared_ptr<void>(
+-        inserted->second.ptr(), [handle, this](void* ptr) {
+-          std::unique_lock<std::mutex> deleter_lock(ipc_mutex);
+-
+-          auto it = ipc_handle_cache.find(handle);
+-          TORCH_INTERNAL_ASSERT(
+-              it != ipc_handle_cache.end(),
+-              "ipc_handle_cache entry not found in deleter.");
+-          auto entry = std::move(it->second);
+-          ipc_handle_cache.erase(it);
+-
+-          deleter_lock.unlock();
+-          entry.clear();
+-        });
+-    inserted->second.wp = sp;
+-    return sp;
+-  }
+-
+   void createOrIncrefPool(
+       c10::DeviceIndex device,
+       MempoolId_t mempool_id,
+@@ -2390,14 +2265,6 @@ SnapshotInfo snapshot(MempoolId_t mempool_id) {
+   return native_allocator.snapshot(mempool_id);
+ }
+ 
+-ShareableHandle shareIpcHandle(void* ptr) {
+-  return native_allocator.shareIpcHandle(ptr);
+-}
+-
+-std::shared_ptr<void> getIpcDevPtr(std::string handle) {
+-  return native_allocator.getIpcDevPtr(std::move(handle));
+-}
+-
+ void createOrIncrefPool(
+     c10::DeviceIndex device,
+     MempoolId_t mempool_id,
+diff --git a/c10/xpu/XPUCachingAllocator.h b/c10/xpu/XPUCachingAllocator.h
+index 8a8a182c2d2..55265e775ef 100644
+--- a/c10/xpu/XPUCachingAllocator.h
++++ b/c10/xpu/XPUCachingAllocator.h
+@@ -6,11 +6,6 @@
+ 
+ namespace c10::xpu::XPUCachingAllocator {
+ 
+-struct ShareableHandle {
+-  ptrdiff_t offset;
+-  std::string handle;
+-};
+-
+ class XPUAllocator : public DeviceAllocator {
+  public:
+   virtual void init(c10::DeviceIndex device_count) = 0;
+@@ -89,10 +84,6 @@ C10_XPU_API void attachAllocatorTraceTracker(
+ 
+ C10_XPU_API SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0});
+ 
+-C10_XPU_API ShareableHandle shareIpcHandle(void* ptr);
+-
+-C10_XPU_API std::shared_ptr<void> getIpcDevPtr(std::string handle);
+-
+ C10_XPU_API void createOrIncrefPool(
+     c10::DeviceIndex device,
+     c10::MempoolId_t mempool_id,
+diff --git a/c10/xpu/test/CMakeLists.txt b/c10/xpu/test/CMakeLists.txt
+index 3565b9aa75c..3651667af8a 100644
+--- a/c10/xpu/test/CMakeLists.txt
++++ b/c10/xpu/test/CMakeLists.txt
+@@ -1,7 +1,6 @@
+ # ---[ Test binaries.
+ 
+ set(C10_XPU_ALL_TEST_FILES
+-    impl/XPUAllocatorIPCTest.cpp
+     impl/XPUAllocatorTraceTrackerTest.cpp
+     impl/XPUCachingAllocatorTest.cpp
+     impl/XPUDeviceTest.cpp
+diff --git a/c10/xpu/test/impl/XPUAllocatorIPCTest.cpp b/c10/xpu/test/impl/XPUAllocatorIPCTest.cpp
+deleted file mode 100644
+index fafbb21a6d3..00000000000
+--- a/c10/xpu/test/impl/XPUAllocatorIPCTest.cpp
++++ /dev/null
+@@ -1,115 +0,0 @@
+-#include <gtest/gtest.h>
+-
+-#include <c10/xpu/XPUCachingAllocator.h>
+-#include <c10/xpu/test/impl/XPUTest.h>
+-
+-TEST(XPUAllocatorIPCTest, ShareAndGetRoundTrip) {
+-  c10::xpu::XPUCachingAllocator::emptyCache();
+-  auto* allocator = c10::xpu::XPUCachingAllocator::get();
+-  const auto _4mb = 4 * 1024 * 1024;
+-  auto buf = allocator->allocate(_4mb);
+-  void* ptr = buf.get();
+-
+-  auto sh = c10::xpu::XPUCachingAllocator::shareIpcHandle(ptr);
+-  EXPECT_EQ(sh.offset, 0);
+-  EXPECT_FALSE(sh.handle.empty());
+-
+-  auto devptr = c10::xpu::XPUCachingAllocator::getIpcDevPtr(sh.handle);
+-  ASSERT_NE(devptr, nullptr);
+-}
+-
+-TEST(XPUAllocatorIPCTest, ShareOffsetSubAllocation) {
+-  c10::xpu::XPUCachingAllocator::emptyCache();
+-  auto* allocator = c10::xpu::XPUCachingAllocator::get();
+-  // 20M memory is reserved, can be reused later.
+-  {
+-    auto _20mb = 20 * 1024 * 1024;
+-    auto cache = allocator->allocate(_20mb);
+-  }
+-  const auto _10mb = 10 * 1024 * 1024;
+-  auto base_buf = allocator->allocate(_10mb);
+-
+-  const auto _5mb = 5 * 1024 * 1024;
+-  auto sub_buf = allocator->allocate(_5mb);
+-
+-  auto sh = c10::xpu::XPUCachingAllocator::shareIpcHandle(sub_buf.get());
+-  EXPECT_GT(sh.offset, 0);
+-  EXPECT_FALSE(sh.handle.empty());
+-
+-  auto devptr = c10::xpu::XPUCachingAllocator::getIpcDevPtr(sh.handle);
+-  ASSERT_NE(devptr, nullptr);
+-}
+-
+-TEST(XPUAllocatorIPCTest, GetIpcDevPtrCacheHit) {
+-  auto* allocator = c10::xpu::XPUCachingAllocator::get();
+-  const auto _4mb = 4 * 1024 * 1024;
+-  auto buf = allocator->allocate(_4mb);
+-
+-  auto sh = c10::xpu::XPUCachingAllocator::shareIpcHandle(buf.get());
+-
+-  auto sp1 = c10::xpu::XPUCachingAllocator::getIpcDevPtr(sh.handle);
+-  auto sp2 = c10::xpu::XPUCachingAllocator::getIpcDevPtr(sh.handle);
+-
+-  // Both calls must return shared_ptrs sharing the same control block.
+-  EXPECT_EQ(sp1.get(), sp2.get());
+-  EXPECT_EQ(sp1.use_count(), 2);
+-}
+-
+-TEST(XPUAllocatorIPCTest, GetIpcDevPtrCacheEviction) {
+-  auto* allocator = c10::xpu::XPUCachingAllocator::get();
+-  const auto _4mb = 4 * 1024 * 1024;
+-  auto buf = allocator->allocate(_4mb);
+-
+-  auto sh = c10::xpu::XPUCachingAllocator::shareIpcHandle(buf.get());
+-
+-  {
+-    auto sp = c10::xpu::XPUCachingAllocator::getIpcDevPtr(sh.handle);
+-    EXPECT_EQ(sp.use_count(), 1);
+-  }
+-  // sp is gone; the deleter erased the cache entry. A fresh call re-opens the
+-  // IPC mapping with a new control block.
+-  auto sp2 = c10::xpu::XPUCachingAllocator::getIpcDevPtr(sh.handle);
+-  ASSERT_NE(sp2, nullptr);
+-  EXPECT_EQ(sp2.use_count(), 1);
+-}
+-
+-TEST(XPUAllocatorIPCTest, SameProcessRoundTrip) {
+-  const auto _4mb = 4 * 1024 * 1024;
+-  const int numel = _4mb / sizeof(int);
+-
+-  auto* allocator = c10::xpu::XPUCachingAllocator::get();
+-  auto buf = allocator->allocate(_4mb);
+-  void* dev_ptr = buf.get();
+-
+-  std::vector<int> hostData(numel);
+-  initHostData(hostData.data(), numel);
+-
+-  auto sh = c10::xpu::XPUCachingAllocator::shareIpcHandle(dev_ptr);
+-  auto dev_ptr_ipc = c10::xpu::XPUCachingAllocator::getIpcDevPtr(sh.handle);
+-  void* ipc_addr = static_cast<char*>(dev_ptr_ipc.get()) + sh.offset;
+-
+-  c10::xpu::getCurrentXPUStream()
+-      .queue()
+-      .memcpy(ipc_addr, hostData.data(), _4mb)
+-      .wait();
+-  clearHostData(hostData.data(), numel);
+-  c10::xpu::getCurrentXPUStream()
+-      .queue()
+-      .memcpy(hostData.data(), dev_ptr, _4mb)
+-      .wait();
+-
+-  validateHostData(hostData.data(), numel);
+-}
+-
+-int main(int argc, char* argv[]) {
+-  ::testing::InitGoogleTest(&argc, argv);
+-  auto device = c10::xpu::device_count();
+-  if (device <= 0) {
+-    return 0;
+-  }
+-  if (!c10::xpu::get_raw_device(0).has(sycl::aspect::ext_oneapi_ipc_memory)) {
+-    return 0;
+-  }
+-  c10::xpu::XPUCachingAllocator::init(device);
+-  return RUN_ALL_TESTS();
+-}
+-- 
+2.50.1 (Apple Git-155)
+EOL
+
 # Patch torch-xpu-ops to support oneAPI
 TORCH_XPU_OPS_COMMIT="$(cat third_party/xpu.txt)"
 git clone 'https://github.com/intel/torch-xpu-ops.git' third_party/torch-xpu-ops

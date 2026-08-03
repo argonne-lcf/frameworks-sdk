@@ -18,7 +18,7 @@ export LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LIBRARY_PATH"
 export Pti_DIR="$FRAMEWORKS_RUN_DIR/pti-gpu/lib/cmake/pti"
 
 # Patch OpenMP flag failure
-git am <<'EOF'
+git am -3 <<'EOF'
 From b4bdb5ec6901174f3c059e881bd1a479097dd24c Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Mon, 27 Jul 2026 19:32:12 -0500
@@ -58,7 +58,7 @@ git clone 'https://github.com/intel/torch-xpu-ops.git' third_party/torch-xpu-ops
 pushd third_party/torch-xpu-ops
 git fetch origin "$TORCH_XPU_OPS_COMMIT"
 git checkout FETCH_HEAD
-git am <<'EOL'
+git am -3 <<'EOL'
 From b5744c10b5f63657319d7d4bdb312754353c36db Mon Sep 17 00:00:00 2001
 From: "Yu, Guangye" <guangye.yu@intel.com>
 Date: Tue, 28 Jul 2026 17:21:30 +0800
@@ -162,7 +162,7 @@ index 9629dc86..795648ae 100644
 2.50.1 (Apple Git-155)
 EOL
 popd
-git am <<'EOL'
+git am -3 <<'EOL'
 From 3d843079c8429068a41ec9647d6732ba2fe485f0 Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Mon, 27 Jul 2026 23:31:37 -0500

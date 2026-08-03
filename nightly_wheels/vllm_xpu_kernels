@@ -17,7 +17,7 @@ sed -i -e "/^triton-xpu$/d" requirements.txt
 setup_uv_venv -r requirements.txt *.whl
 
 # Coerce using C++20 for torch>=2.13
-git am <<'EOF'
+git am -3 <<'EOF'
 From 893c48c42be4b787bb559050300cda1e79a8fe7a Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Wed, 22 Jul 2026 17:39:36 -0500

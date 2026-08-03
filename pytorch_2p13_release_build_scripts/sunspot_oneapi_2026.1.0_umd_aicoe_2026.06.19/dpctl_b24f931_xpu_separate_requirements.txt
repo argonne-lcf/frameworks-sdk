@@ -1,0 +1,4 @@
+## Specific requirements for dpctl_b24f931
+## From https://github.com/IntelPython/dpctl/blob/master/pyproject.toml
+scikit-build>=0.17.0
+versioneer==0.29

@@ -1,0 +1,29 @@
+--- __init__-orig.py	2026-08-02 18:00:22.000000000 +0000
++++ __init__.py	2026-08-02 18:03:00.000000000 +0000
+@@ -3076,6 +3076,26 @@
+ if _is_device_backend_autoload_enabled():
+     _import_device_backends()
+ 
++def _topk_via_sort(self, k, dim=-1, largest=True, sorted=True):  # noqa: A002
++    if self.dim() == 0:
++        return self.clone(), torch.zeros((), dtype=torch.long, device=self.device)
++    values, indices = torch.sort(self, dim=dim, descending=largest, stable=True)
++    return values.narrow(dim, 0, k).contiguous(), indices.narrow(dim, 0, k).contiguous()
++
++def _topk_out_via_sort(self, k, dim=-1, largest=True, sorted=True, *, values, indices):  # noqa: A002
++    nv, ni = _topk_via_sort(self, k, dim, largest, sorted)
++    if values.shape != nv.shape:
++        values.resize_(nv.shape)
++    if indices.shape != ni.shape:
++        indices.resize_(ni.shape)
++    values.copy_(nv)
++    indices.copy_(ni)
++    return values, indices
++
++_lib = torch.library.Library("aten", "IMPL")  # noqa: TOR901
++_lib.impl("topk", _topk_via_sort, "XPU")
++_lib.impl("topk.values", _topk_out_via_sort, "XPU")
++
+ from torch import _logging
+ 
+ 

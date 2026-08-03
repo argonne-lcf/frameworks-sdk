@@ -1,0 +1,12 @@
+--- xpu_orig.py	2026-08-02 20:01:13.000000000 +0000
++++ xpu.py	2026-08-02 20:02:12.000000000 +0000
+@@ -92,7 +92,9 @@
+         )
+ 
+     # Call the underlying C++ implementation
+-    free, total = torch.ops._C_cache_ops.getMemoryInfo(device)
++    #free, total = torch.ops._C_cache_ops.getMemoryInfo(device)
++    # patched because of a driver issue
++    free, total = torch.xpu.mem_get_info(device)
+ 
+     return free, total

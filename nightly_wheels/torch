@@ -540,76 +540,45 @@ pushd third_party/torch-xpu-ops
 git fetch origin "$TORCH_XPU_OPS_COMMIT"
 git checkout FETCH_HEAD
 git am -3 <<'EOL'
-From b5744c10b5f63657319d7d4bdb312754353c36db Mon Sep 17 00:00:00 2001
-From: "Yu, Guangye" <guangye.yu@intel.com>
-Date: Tue, 28 Jul 2026 17:21:30 +0800
-Subject: [PATCH 1/2] Fix separate ops build failure due to Sleep.cpp (#4715)
-
-# Motivation
-
-Fix the broken build with `BUILD_SEPARATE_OPS=1` introduced by
-https://github.com/intel/torch-xpu-ops/pull/4385
----
- src/BuildOnLinux.cmake | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
-
-diff --git a/src/BuildOnLinux.cmake b/src/BuildOnLinux.cmake
-index 466f782f..72fb1fcb 100644
---- a/src/BuildOnLinux.cmake
-+++ b/src/BuildOnLinux.cmake
-@@ -40,7 +40,16 @@ if(BUILD_SEPARATE_OPS)
-       ${sycl_lib}
-       SHARED
-       SYCL_SOURCES ${sycl_src})
--    target_link_libraries(torch_xpu_ops PUBLIC ${sycl_lib})
-+
-+    # Sleep.cpp provides at::xpu::sleep, used by libtorch_python but not by any
-+    # operator in libtorch_xpu. Since no symbol is referenced within
-+    # libtorch_xpu, --as-needed drops it, leaving at::xpu::sleep unresolved at
-+    # load time. Force-keep it as a NEEDED dependency.
-+    if(name STREQUAL "Sleep")
-+      target_link_libraries(torch_xpu_ops PUBLIC "-Wl,--no-as-needed" ${sycl_lib} "-Wl,--as-needed")
-+    else()
-+      target_link_libraries(torch_xpu_ops PUBLIC ${sycl_lib})
-+    endif()
-     list(APPEND TORCH_XPU_OPS_LIBRARIES ${sycl_lib})
- 
-     # Decouple with PyTorch cmake definition.
--- 
-2.50.1 (Apple Git-155)
-
-
-From b6f5a976d18b23c14bfa6885a33319513cbfff4b Mon Sep 17 00:00:00 2001
+From 002dd3b0c031c515688c6b31273990487a4b34ad Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Mon, 27 Jul 2026 22:29:27 -0500
-Subject: [PATCH 2/2] cmake: support `IntelLLVM`
+Subject: [PATCH] cmake: support `IntelLLVM`
 
 ---
- CMakeLists.txt         | 8 ++++----
- cmake/BuildFlags.cmake | 6 +++---
- 2 files changed, 7 insertions(+), 7 deletions(-)
+ CMakeLists.txt         | 16 ++++++++--------
+ cmake/BuildFlags.cmake |  6 +++---
+ 2 files changed, 11 insertions(+), 11 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index bdee938c..efb67683 100644
+index 945ab36d..eae37a6a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -66,10 +66,10 @@ if(USE_XCCL)
+@@ -66,14 +66,14 @@ if(USE_XCCL)
  endif()
  
  set(USE_SYCLTLA ON)
 -if(WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0)
 -  set(USE_SYCLTLA OFF)
 -  message(WARNING "SYCL-TLA is not build as it only supports GCC >= 13.0 as CXX Compiler on Linux Platform!")
+-elseif(CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
+-  # Before the include below, so SYCLTLA.cmake is skipped in debug builds.
+-  set(USE_SYCLTLA OFF)
+-  message(STATUS "SYCL-TLA disabled in ${CMAKE_BUILD_TYPE} build (excessive memory usage with debug info)")
 -endif()
 +# if(WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0)
 +#   set(USE_SYCLTLA OFF)
 +#   message(WARNING "SYCL-TLA is not build as it only supports GCC >= 13.0 as CXX Compiler on Linux Platform!")
++# elseif(CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
++#   # Before the include below, so SYCLTLA.cmake is skipped in debug builds.
++#   set(USE_SYCLTLA OFF)
++#   message(STATUS "SYCL-TLA disabled in ${CMAKE_BUILD_TYPE} build (excessive memory usage with debug info)")
 +# endif()
  
  if(USE_SYCLTLA)
    include(${TORCH_XPU_OPS_ROOT}/cmake/SYCLTLA.cmake)
 diff --git a/cmake/BuildFlags.cmake b/cmake/BuildFlags.cmake
-index 9629dc86..795648ae 100644
+index b07c344d..25b2baf8 100644
 --- a/cmake/BuildFlags.cmake
 +++ b/cmake/BuildFlags.cmake
 @@ -31,7 +31,7 @@ function(CHECK_SYCL_FLAG FLAG VARIABLE_NAME)
@@ -621,16 +590,16 @@ index 9629dc86..795648ae 100644
    if(NOT CMAKE_CXX_COMPILER_ID IN_LIST _TORCH_XPU_OPS_SUPPORTED_COMPILERS)
      message(WARNING "Not compiling with XPU. Currently only support GCC compiler on Linux and MSVC compiler on Windows as CXX compiler.")
      return()
-@@ -71,7 +71,7 @@ macro(set_build_flags)
-     elseif(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-       list(APPEND SYCL_HOST_FLAGS /O2 /Z7)
-     endif()
+@@ -70,7 +70,7 @@ macro(set_build_flags)
+     set(SYCL_HOST_PER_CONFIG_FLAGS
+       $<$<CONFIG:Debug>:/Od;/Z7>
+       $<$<CONFIG:RelWithDebInfo>:/O2;/Z7>)
 -  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 +  else()
      list(APPEND SYCL_HOST_FLAGS -fPIC)
      list(APPEND SYCL_HOST_FLAGS -std=${CPP_STD})
-     list(APPEND SYCL_HOST_FLAGS -Wunused-variable)
-@@ -140,7 +140,7 @@ macro(set_build_flags)
+     list(APPEND SYCL_HOST_FLAGS -Wno-interference-size)
+@@ -138,7 +138,7 @@ macro(set_build_flags)
      list(APPEND SYCL_KERNEL_OPTIONS /Qftz-)
      # Suppress warnings about dllexport.
      list(APPEND SYCL_KERNEL_OPTIONS -Wno-ignored-attributes)

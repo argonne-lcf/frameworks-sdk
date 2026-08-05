@@ -539,6 +539,8 @@ git clone 'https://github.com/intel/torch-xpu-ops.git' third_party/torch-xpu-ops
 pushd third_party/torch-xpu-ops
 git fetch origin "$TORCH_XPU_OPS_COMMIT"
 git checkout FETCH_HEAD
+
+# Patch in support for oneAPI
 git am -3 <<'EOL'
 From 002dd3b0c031c515688c6b31273990487a4b34ad Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
@@ -611,6 +613,131 @@ index b07c344d..25b2baf8 100644
 -- 
 2.50.1 (Apple Git-155)
 EOL
+
+# Re-add compiler guard drop
+git am -3 <<'EOL'
+From 19a4dad72c89a51522ed817c959baafd1850c47d Mon Sep 17 00:00:00 2001
+From: Ethan Wong <ewong@anl.gov>
+Date: Wed, 5 Aug 2026 17:49:40 -0500
+Subject: [PATCH] Revert "Require oneAPI 2026.0, drop XPU symm-mem fallback
+ (#4302)"
+
+This reverts commit 6786179d22b483b79b781ca41d7919833c4bdd56.
+---
+ src/xccl/XPUSymmetricMemory.cpp | 79 ++++++++++++++++++++++++++++++++-
+ 1 file changed, 77 insertions(+), 2 deletions(-)
+
+diff --git a/src/xccl/XPUSymmetricMemory.cpp b/src/xccl/XPUSymmetricMemory.cpp
+index c13e0794..cd94fe59 100644
+--- a/src/xccl/XPUSymmetricMemory.cpp
++++ b/src/xccl/XPUSymmetricMemory.cpp
+@@ -4,8 +4,16 @@
+ #include <c10/util/Exception.h>
+ #include <torch/csrc/distributed/c10d/GroupRegistry.hpp>
+ 
+-// Requires Intel oneAPI DPC++/C++ Compiler >= 2026.0 for
+-// <sycl/ext/oneapi/experimental/ipc_memory.hpp>.
++// XPU symmetric memory is implemented on top of
++// <sycl/ext/oneapi/experimental/ipc_memory.hpp>, which is provided only by
++// Intel oneAPI DPC++/C++ Compiler >= 2026.0.
++#if defined(SYCL_COMPILER_VERSION) && SYCL_COMPILER_VERSION >= 20260000
++#define XPU_SYMM_MEM_AVAILABLE 1
++#else
++#define XPU_SYMM_MEM_AVAILABLE 0
++#endif
++
++#if XPU_SYMM_MEM_AVAILABLE
+ 
+ #include <xccl/ProcessGroupXCCL.hpp>
+ 
+@@ -21,9 +29,13 @@
+ #include <atomic>
+ #include <mutex>
+ 
++#endif // XPU_SYMM_MEM_AVAILABLE
++
+ namespace c10d {
+ namespace symmetric_memory {
+ 
++#if XPU_SYMM_MEM_AVAILABLE
++
+ namespace {
+ 
+ std::atomic<uint64_t> store_exchange_nonce{0};
+@@ -471,6 +483,69 @@ c10::intrusive_ptr<Block> XPUSymmetricMemoryAllocator::find_block(void* ptr) {
+   return it->second;
+ }
+ 
++#else // !XPU_SYMM_MEM_AVAILABLE
++
++// Stub implementation for compilers that do not provide
++// <sycl/ext/oneapi/experimental/ipc_memory.hpp>. The allocator is still
++// registered (so the "XPU" backend remains discoverable) but invoking it
++// surfaces an actionable upgrade message instead of a silent failure or a
++// confusing missing-symbol error.
++namespace {
++
++[[noreturn]] void throw_unsupported_compiler() {
++  TORCH_CHECK(
++      false,
++      "XPU SymmetricMemory requires Intel oneAPI DPC++/C++ Compiler 2026.0 "
++      "or newer (which provides "
++      "<sycl/ext/oneapi/experimental/ipc_memory.hpp>). Detected "
++      "SYCL_COMPILER_VERSION=" C10_STRINGIZE(
++          SYCL_COMPILER_VERSION) ". Please rebuild PyTorch / torch-xpu-ops with oneAPI 2026.0 or newer.");
++}
++
++#undef XPU_SYMM_MEM_STRINGIZE
++#undef XPU_SYMM_MEM_STRINGIZE_
++} // namespace
++
++void* XPUSymmetricMemoryAllocator::alloc(
++    size_t /*size*/,
++    int /*device_idx*/,
++    const std::optional<std::string>& /*group_name*/) {
++  throw_unsupported_compiler();
++}
++
++void XPUSymmetricMemoryAllocator::free(void* /*ptr*/) {
++  // No-op: alloc() always throws, so there is nothing to free.
++}
++
++size_t XPUSymmetricMemoryAllocator::get_alloc_size(void* /*ptr*/) {
++  throw_unsupported_compiler();
++}
++
++c10::intrusive_ptr<SymmetricMemory> XPUSymmetricMemoryAllocator::rendezvous(
++    void* /*ptr*/,
++    const std::optional<std::string>& /*group_name*/) {
++  throw_unsupported_compiler();
++}
++
++bool XPUSymmetricMemoryAllocator::has_multicast_support(int /*device_idx*/) {
++  return false;
++}
++
++c10::DeviceType XPUSymmetricMemoryAllocator::supported_device_type() {
++  return c10::DeviceType::XPU;
++}
++
++std::string XPUSymmetricMemoryAllocator::name() {
++  return "XPU";
++}
++
++c10::intrusive_ptr<Block> XPUSymmetricMemoryAllocator::find_block(
++    void* /*ptr*/) {
++  return nullptr;
++}
++
++#endif // XPU_SYMM_MEM_AVAILABLE
++
+ struct RegisterXPUSymmetricMemoryAllocator {
+   RegisterXPUSymmetricMemoryAllocator() {
+     auto allocator = c10::make_intrusive<XPUSymmetricMemoryAllocator>();
+-- 
+2.50.1 (Apple Git-155)
+EOL
+
 popd
 git am -3 <<'EOL'
 From 3d843079c8429068a41ec9647d6732ba2fe485f0 Mon Sep 17 00:00:00 2001

@@ -1,0 +1,50 @@
+#!/bin/bash -x
+#PBS -l select=64
+#PBS -l place=scatter
+#PBS -l walltime=00:20:00
+#PBS -q workq
+#PBS -A datascience
+#PBS -l filesystems=home:tegu
+#PBS -k doe
+#PBS -j oe
+#PBS -N ARDC_OVL
+
+export TZ='/usr/share/zoneinfo/US/Central'
+
+BENCH_DIR=${PBS_O_WORKDIR:-$(cd "$(dirname "$0")" && pwd)}
+MACHINE=${MACHINE:-sunspot}   # sunspot | aurora
+
+NNODES=$([ -n "${PBS_NODEFILE}" ] && wc -l < ${PBS_NODEFILE} || echo 1)
+NRANKS_PER_NODE=${NRANKS_PER_NODE:-12}
+export PALS_WORLD_SIZE=$((NNODES * NRANKS_PER_NODE))
+echo "NNODES=${NNODES} PALS_WORLD_SIZE=${PALS_WORLD_SIZE}"
+
+module add frameworks
+
+export CCL_OP_SYNC=${CCL_OP_SYNC:-0}   # must stay 0 here: =1 forces synchronous completion and defeats the test
+export CCL_ATL_SYNC_COLL=0
+export CCL_PROCESS_LAUNCHER=pmix
+export CCL_ATL_TRANSPORT=mpi
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export FI_MR_CACHE_MONITOR=userfaultfd
+
+export CCL_WORKER_AFFINITY="42,43,44,45,46,47,94,95,96,97,98,99"
+export ZE_AFFINITY_MASK="0,1,2,3,4,5,6,7,8,9,10,11"
+CPU_AFFINITY=$(bash ${BENCH_DIR}/get_cpu_bind_aurora.sh ${NRANKS_PER_NODE})
+
+# ~50 GB of the 64 GB tile; payload auto-sizes from the world size.
+export TEST_MEM_BUDGET_GB=${TEST_MEM_BUDGET_GB:-50}
+export TEST_ITERS=${TEST_ITERS:-10}
+export TEST_DTYPE=${TEST_DTYPE:-bfloat16}
+export TEST_TIMEOUT=${TEST_TIMEOUT:-600}
+
+# The python resolves rank/world/local from PALS_* or torchrun's RANK/WORLD_SIZE,
+# so both launchers work. mpiexec is the real path; torchrun is the single-node fallback.
+if command -v mpiexec >/dev/null 2>&1 && [ -n "${PBS_NODEFILE}" ]; then
+    mpiexec -n ${PALS_WORLD_SIZE} -ppn ${NRANKS_PER_NODE} -l --line-buffer ${CPU_AFFINITY} \
+        -env MASTER_ADDR=$(hostname).hsn.cm.${MACHINE}.alcf.anl.gov \
+        -env MASTER_PORT=2345 python ${BENCH_DIR}/test_torch_overlap.py
+else
+    echo "no mpiexec / not under PBS -- torchrun fallback, SINGLE NODE ONLY (dev convenience)"
+    torchrun --nproc_per_node=${NRANKS_PER_NODE} --master_port=2345 ${BENCH_DIR}/test_torch_overlap.py
+fi

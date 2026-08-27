@@ -218,8 +218,9 @@ def check_scaled(ctx, out, scale, *key, whole=None, offset=0):
     return True
 
 
-def run(ctx, op, validate, prep=None):
-    """Time `op` for ITERS iterations, then validate once. Exits nonzero if any rank failed."""
+def run(ctx, op, validate, prep=None, report=None):
+    """Time `op` for ITERS iterations, then validate once. Exits nonzero if any rank failed.
+    `report(times)` is an optional extra log line for tests whose timing needs context."""
     times = []
     for i in range(ITERS):
         if prep:
@@ -239,6 +240,8 @@ def run(ctx, op, validate, prep=None):
     flag = torch.tensor([1 if ctx.failed else 0], device=ctx.device)
     with guard(ctx, "failure reduction"):
         dist.all_reduce(flag, op=dist.ReduceOp.MAX)
+    if report:
+        report(times)
     mean = sum(times[1:]) / max(1, len(times) - 1)
     ctx.log(f"mean {mean:.3f}s (excl iter 0)   RESULT {'FAIL' if flag.item() else 'PASS'}")
     dist.destroy_process_group()

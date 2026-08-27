@@ -216,11 +216,12 @@ def run(ctx, op, validate, prep=None):
     for i in range(ITERS):
         if prep:
             prep()
-        ctx.barrier()
+        with guard(ctx, f"iter {i} barrier"):
+            ctx.barrier()
         t0 = time.perf_counter()
         with guard(ctx, f"iter {i}"):
             op()
-        ctx.sync()
+            ctx.sync()  # inside the guard: async backends only block here
         times.append(time.perf_counter() - t0)
         ctx.log(f"iter {i}   {times[-1]:.3f}s")
 

@@ -17,7 +17,7 @@ import torch
 import torch.distributed as dist
 
 SEED = 1234
-CHUNK = 1 << 26  # elements per RNG chunk
+CHUNK = int(os.environ.get("TEST_CHUNK", 1 << 26))  # elements per RNG chunk
 ALIGN = 512  # element alignment for message sizes
 BUDGET = int(float(os.environ.get("TEST_MEM_BUDGET_GB", "50")) * 1e9)
 ITERS = int(os.environ.get("TEST_ITERS", "10"))
@@ -63,10 +63,6 @@ def chunk(total, j, dtype, device, *key):
     """Regenerate chunk j of a buffer of `total` elements built by fill(..., *key)."""
     m = min(CHUNK, total - j * CHUNK)
     return torch.empty(m, dtype=dtype, device=device).normal_(generator=_gen(device, *key, j))
-
-
-def nchunks(total):
-    return (total + CHUNK - 1) // CHUNK
 
 
 def size_for(parts, dtype=DTYPE):
@@ -192,14 +188,26 @@ def check_regions(ctx, out, spans, keyfn, label="region"):
     return True
 
 
-def check_scaled(ctx, out, scale, *key):
-    """Full-buffer check that out == base * scale, chunk by chunk. Reports the observed
-    relative error: bf16 reduction over many ranks is inherently lossy, so the pass
-    threshold is generous and the measured number is the useful output."""
+def scalars(ctx):
+    """Per-rank positive scalar and the world sum, so a reduction has a closed form."""
+    a = torch.empty(ctx.world, dtype=torch.float64).uniform_(
+        0.5, 1.5, generator=torch.Generator().manual_seed(SEED))
+    return a[ctx.rank].item(), a.sum().item()
+
+
+def check_scaled(ctx, out, scale, *key, whole=None, offset=0):
+    """Full-buffer check that out == base[offset : offset + out.numel()] * scale, chunk by
+    chunk. `whole` is the element count base was generated as, for when out is only a
+    slice of it (reduce_scatter). Reports the observed relative error: bf16 reduction over
+    many ranks is inherently lossy, so the pass threshold is generous and the measured
+    number is the useful output."""
     n, worst = out.numel(), 0.0
-    for j in range(nchunks(n)):
-        ref = chunk(n, j, out.dtype, out.device, *key).float() * scale
-        got = out[j * CHUNK : j * CHUNK + ref.numel()].float()
+    whole = n if whole is None else whole
+    for j in range(offset // CHUNK, (offset + n - 1) // CHUNK + 1):
+        c = chunk(whole, j, out.dtype, out.device, *key)
+        lo, hi = max(offset, j * CHUNK), min(offset + n, j * CHUNK + c.numel())
+        ref = c[lo - j * CHUNK : hi - j * CHUNK].float() * scale
+        got = out[lo - offset : hi - offset].float()
         denom = ref.abs().max().clamp(min=1e-12)
         worst = max(worst, ((got - ref).abs().max() / denom).item())
     if worst > RTOL:

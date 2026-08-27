@@ -2,8 +2,11 @@
 the worst outcome at 120k ranks, so this corrupts one rank and asserts the whole job
 goes red. Not a platform test -- run it after touching _common.py.
 
-  NEG=misroute|nan|scale TEST_DEVICE=cpu TEST_MEM_BUDGET_GB=0.02 TEST_ITERS=1 \
-      torchrun --nproc_per_node=4 _negtest.py     # must exit 1 on every rank
+  NEG=misroute|nan|scale|offset TEST_DEVICE=cpu TEST_MEM_BUDGET_GB=0.02 TEST_ITERS=1 \
+      TEST_CHUNK=4096 torchrun --nproc_per_node=4 _negtest.py   # must exit 1 everywhere
+
+A small TEST_CHUNK is what makes these bite: it forces buffers across many RNG chunks
+at smoke-test sizes, so the chunk-straddling arithmetic is actually exercised.
 """
 
 import os
@@ -21,12 +24,22 @@ ctx = C.Ctx("neg/" + MODE)
 if MODE == "scale":
     n = C.size_for(1)
     buf = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
-    a = torch.empty(ctx.world, dtype=torch.float64).uniform_(
-        0.5, 1.5, generator=torch.Generator().manual_seed(C.SEED))
-    mine, total = a[ctx.rank].item(), a.sum().item()
+    mine, total = C.scalars(ctx)
     C.run(ctx, lambda: dist.all_reduce(buf),
           lambda: C.check_finite(ctx, buf) and C.check_scaled(ctx, buf, total * 1.5, 0),
           lambda: (C.fill(buf, 0), buf.mul_(mine)))
+elif MODE == "offset":
+    # Check each reduce_scatter shard against its neighbour's slice. Must fail -- that is
+    # what proves check_scaled's offset picks a real region, not an empty or wrong one.
+    n = C.size_for(ctx.world + 1)
+    inp = torch.empty(n * ctx.world, dtype=C.DTYPE, device=ctx.device)
+    out = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    mine, total = C.scalars(ctx)
+    scatter = getattr(dist, "reduce_scatter_single", None) or dist.reduce_scatter_tensor
+    C.run(ctx, lambda: scatter(out, inp),
+          lambda: C.check_scaled(ctx, out, total, 0, whole=n * ctx.world,
+                                 offset=((ctx.rank + 1) % ctx.world) * n),
+          lambda: (C.fill(inp, 0), inp.mul_(mine)))
 else:
     n = C.size_for(2 * ctx.world)
     inp = torch.empty(n * ctx.world, dtype=C.DTYPE, device=ctx.device)

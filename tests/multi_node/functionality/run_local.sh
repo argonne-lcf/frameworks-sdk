@@ -16,7 +16,7 @@ TORCHRUN=${TORCHRUN:-torchrun}
 PYTHON=${PYTHON:-python}
 NP=${NP:-4}
 PORT=${PORT:-29580}
-TESTS="allreduce allgather alltoall alltoall_uneven"
+TESTS="allreduce allgather alltoall alltoall_uneven reduce_scatter"
 export TEST_DEVICE=cpu
 export TEST_MEM_BUDGET_GB=${TEST_MEM_BUDGET_GB:-0.02}
 export TEST_ITERS=${TEST_ITERS:-3}
@@ -24,8 +24,10 @@ rc=0
 
 case "${1:-run}" in
 neg)
-    for m in misroute nan scale; do
-        if NEG=$m $TORCHRUN --nproc_per_node=$NP --master_port=$PORT _negtest.py \
+    # Small chunks so smoke-test buffers still straddle RNG chunk boundaries.
+    for m in misroute nan scale offset; do
+        if NEG=$m TEST_CHUNK=${TEST_CHUNK:-4096} \
+                $TORCHRUN --nproc_per_node=$NP --master_port=$PORT _negtest.py \
                 >/tmp/neg_$m.log 2>&1; then
             echo "BAD   $m NOT detected -- the validator is not doing its job"; rc=1
         else

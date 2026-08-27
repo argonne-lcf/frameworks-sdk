@@ -13,9 +13,7 @@ buf = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
 
 # Every rank holds the same random `base` scaled by its own positive scalar, so the
 # sum has the closed form base * total and can be checked at O(N) at any world size.
-a = torch.empty(ctx.world, dtype=torch.float64).uniform_(
-    0.5, 1.5, generator=torch.Generator().manual_seed(C.SEED))
-mine, total = a[ctx.rank].item(), a.sum().item()
+mine, total = C.scalars(ctx)
 
 ctx.log(f"buffer {C.human(buf.nbytes)} ({n} elems) in place")
 

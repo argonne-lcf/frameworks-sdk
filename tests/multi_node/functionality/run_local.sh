@@ -16,7 +16,7 @@ TORCHRUN=${TORCHRUN:-torchrun}
 PYTHON=${PYTHON:-python}
 NP=${NP:-4}
 PORT=${PORT:-29580}
-TESTS="allreduce allgather alltoall alltoall_uneven reduce_scatter overlap p2p streams"
+TESTS="allreduce allgather alltoall alltoall_uneven reduce_scatter overlap p2p streams subgroups"
 export TEST_DEVICE=cpu
 export TEST_MEM_BUDGET_GB=${TEST_MEM_BUDGET_GB:-0.02}
 export TEST_ITERS=${TEST_ITERS:-3}
@@ -25,7 +25,7 @@ rc=0
 case "${1:-run}" in
 neg)
     # Small chunks so smoke-test buffers still straddle RNG chunk boundaries.
-    for m in misroute nan scale offset p2p; do
+    for m in misroute nan scale offset p2p groups; do
         if NEG=$m TEST_CHUNK=${TEST_CHUNK:-4096} \
                 $TORCHRUN --nproc_per_node=$NP --master_port=$PORT _negtest.py \
                 >/tmp/neg_$m.log 2>&1; then
@@ -60,7 +60,8 @@ pals)
     for t in $TESTS; do
         case $t in
         p2p)     var=TEST_P2P;          modes="ring ring_async ring_async_sym ring_batch batch" ;;
-        overlap) var=TEST_OVERLAP_COLL; modes="all_reduce all_gather" ;;
+        overlap)   var=TEST_OVERLAP_COLL; modes="all_reduce all_gather p2p" ;;
+        subgroups) var=TEST_GROUPS;       modes="ep pp seq disjoint overlap" ;;
         *)       var=UNUSED;            modes=- ;;
         esac
         for m in $modes; do

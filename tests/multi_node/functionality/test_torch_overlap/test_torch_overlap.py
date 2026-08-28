@@ -8,7 +8,7 @@ import torch.distributed as dist
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import _common as C
 
-COLL = os.environ.get("TEST_OVERLAP_COLL", "all_reduce")  # all_reduce | all_gather
+COLL = os.environ.get("TEST_OVERLAP_COLL", "all_reduce")  # all_reduce | all_gather | p2p
 
 ctx = C.Ctx(f"overlap_{COLL}")
 
@@ -21,6 +21,14 @@ ctx = C.Ctx(f"overlap_{COLL}")
 # a zero overlap score cannot be an API defect -- it is either the reduction kernels
 # competing with the gemm for Xe cores, or a serializing submission below PyTorch.
 # all_gather is pure data movement with no reduction kernels, which separates the two.
+#
+# p2p is the empty cell in the bug 4 grid, and the reason this branch exists: every overlap
+# number so far is either a collective against compute (0.01-0.14) or P2P against other P2P
+# (0.96). Network P2P against compute has never been measured, and it is the cell a pipeline
+# schedule stands on -- whether a stage can hide its activation exchange behind the next
+# micro-batch, i.e. whether DualPipe's F&B term is real on this stack or collapses to F+B.
+#
+# Each branch also supplies `reset` and `check` so prep and validate stay one line each.
 if COLL == "all_gather":
     n = C.size_for(ctx.world + 1)
     src = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
@@ -28,11 +36,44 @@ if COLL == "all_gather":
     # Renamed in torch 2.13; Sunspot's frameworks module may predate that.
     gather = getattr(dist, "all_gather_single", None) or dist.all_gather_into_tensor
     coll = lambda **kw: gather(buf, src, **kw)
+    reset = lambda: (C.fill(src, ctx.rank), buf.zero_())
+    check = lambda: C.check_regions(ctx, buf, n, lambda r: (r,), "shard")
+elif COLL == "p2p":
+    class _Batch:
+        """batch_isend_irecv hands back a list of Works where a collective hands back one.
+        Wrapping it keeps the async_op=True / blocking split identical for both."""
+
+        def __init__(self, reqs, async_op=False):
+            self.reqs = reqs
+            if not async_op:
+                self.wait()
+
+        def wait(self):
+            for r in self.reqs:
+                r.wait()
+
+    # batch_isend_irecv is the one bidirectional idiom that does not deadlock here (bug 5),
+    # and it is the transport a pipeline stage would actually use. STRIDE has to put the peer
+    # off-node: at stride 1 this measures Xe Link, which is local copy against compute, and
+    # that cell is already filled.
+    stride = int(os.environ.get("TEST_P2P_STRIDE", "1"))
+    prv, nxt = (ctx.rank - stride) % ctx.world, (ctx.rank + stride) % ctx.world
+    n = C.size_for(2)
+    src = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    buf = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    C.fill(src, ctx.rank, nxt)
+    coll = lambda **kw: _Batch(dist.batch_isend_irecv(
+        [dist.P2POp(dist.irecv, buf, prv), dist.P2POp(dist.isend, src, nxt)]), **kw)
+    reset = buf.zero_  # a recv that silently does nothing must not pass on the last iteration
+    check = lambda: C.check_regions(ctx, buf, n, lambda i: (prv, ctx.rank), "message")
+    ctx.log(f"p2p stride={stride}  rank 0 hop {prv} -> {ctx.rank} -> {nxt}")
 else:
     n = C.size_for(1)
     buf = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
     mine, total = C.scalars(ctx)
     coll = lambda **kw: dist.all_reduce(buf, **kw)
+    reset = lambda: (C.fill(buf, 0), buf.mul_(mine))
+    check = lambda: C.check_scaled(ctx, buf, total, 0)
 
 # Compute length is set by the repeat count, not the matrix size, so the operands stay
 # small next to the comm buffer. Default is small on CPU or run_local takes minutes.
@@ -43,12 +84,7 @@ c = torch.empty((M, M), dtype=C.DTYPE, device=ctx.device)
 
 
 def prep():
-    if COLL == "all_gather":
-        C.fill(src, ctx.rank)
-        buf.zero_()  # a gather that silently no-ops must not pass on the last iteration
-    else:
-        C.fill(buf, 0)
-        buf.mul_(mine)
+    reset()
     c.zero_()  # so the gemm check catches compute that never ran, not just wrong results
 
 
@@ -102,9 +138,7 @@ def op():
 
 
 def validate():
-    ok = C.check_finite(ctx, buf) and (
-        C.check_regions(ctx, buf, n, lambda r: (r,), "shard") if COLL == "all_gather"
-        else C.check_scaled(ctx, buf, total, 0))
+    ok = C.check_finite(ctx, buf) and check()
     if not torch.equal(c, ref):
         ctx.fail("gemm output differs from its solo reference")
         return False

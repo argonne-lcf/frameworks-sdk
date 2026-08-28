@@ -2,7 +2,7 @@
 the worst outcome at 120k ranks, so this corrupts one rank and asserts the whole job
 goes red. Not a platform test -- run it after touching _common.py.
 
-  NEG=misroute|nan|scale|offset|p2p TEST_DEVICE=cpu TEST_MEM_BUDGET_GB=0.02 TEST_ITERS=1 \
+  NEG=misroute|nan|scale|offset|p2p|groups TEST_DEVICE=cpu TEST_MEM_BUDGET_GB=0.02 TEST_ITERS=1 \
       TEST_CHUNK=4096 torchrun --nproc_per_node=4 _negtest.py   # must exit 1 everywhere
 
 A small TEST_CHUNK is what makes these bite: it forces buffers across many RNG chunks
@@ -58,6 +58,24 @@ elif MODE == "p2p":
             out[7] += 1.0
 
     C.run(ctx, op, lambda: C.check_regions(ctx, out, n, lambda i: (prv, ctx.rank), "message"))
+elif MODE == "groups":
+    # One rank signs its payload with the other group's tag: right sender, right slot, wrong
+    # communicator. Must fail -- that is what proves the tag half of the subgroup validator's
+    # (tag, rank) key does work. Keying on rank alone would pass this, and a message delivered
+    # through the wrong group is exactly the bug the subgroup test is looking for.
+    EP = max((d for d in range(1, min(6, ctx.world) + 1)
+              if ctx.world % d == 0 and ctx.world // d >= 2), default=1)
+    base = ctx.rank // EP * EP
+    mem = list(range(base, base + EP))
+    groups = [dist.new_group(list(range(g * EP, (g + 1) * EP))) for g in range(ctx.world // EP)]
+    n = C.size_for(EP + 1)
+    src = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    out = torch.empty(n * EP, dtype=C.DTYPE, device=ctx.device)
+    C.fill(src, 1 if ctx.rank == 1 else 0, ctx.rank)  # exactly one rank uses the wrong tag
+    gather = getattr(dist, "all_gather_single", None) or dist.all_gather_into_tensor
+    C.run(ctx, lambda: gather(out, src, group=groups[ctx.rank // EP]),
+          lambda: C.check_regions(ctx, out, n, lambda i: (0, mem[i]), "tag0 slot"),
+          out.zero_)
 else:
     n = C.size_for(2 * ctx.world)
     inp = torch.empty(n * ctx.world, dtype=C.DTYPE, device=ctx.device)

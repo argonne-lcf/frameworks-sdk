@@ -21,8 +21,8 @@ echo "NNODES=${NNODES} PALS_WORLD_SIZE=${PALS_WORLD_SIZE}"
 
 module add frameworks
 
-export CCL_OP_SYNC=0
-export CCL_ATL_SYNC_COLL=0
+export CCL_OP_SYNC=${CCL_OP_SYNC:-0}   # knob, not a default: the suite must run the configuration users actually run
+export CCL_ATL_SYNC_COLL=${CCL_ATL_SYNC_COLL:-0}
 export CCL_PROCESS_LAUNCHER=pmix
 export CCL_ATL_TRANSPORT=mpi
 export ZE_FLAT_DEVICE_HIERARCHY=FLAT

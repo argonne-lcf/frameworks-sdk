@@ -2,7 +2,7 @@
 the worst outcome at 120k ranks, so this corrupts one rank and asserts the whole job
 goes red. Not a platform test -- run it after touching _common.py.
 
-  NEG=misroute|nan|scale|offset TEST_DEVICE=cpu TEST_MEM_BUDGET_GB=0.02 TEST_ITERS=1 \
+  NEG=misroute|nan|scale|offset|p2p TEST_DEVICE=cpu TEST_MEM_BUDGET_GB=0.02 TEST_ITERS=1 \
       TEST_CHUNK=4096 torchrun --nproc_per_node=4 _negtest.py   # must exit 1 everywhere
 
 A small TEST_CHUNK is what makes these bite: it forces buffers across many RNG chunks
@@ -40,6 +40,24 @@ elif MODE == "offset":
           lambda: C.check_scaled(ctx, out, total, 0, whole=n * ctx.world,
                                  offset=((ctx.rank + 1) % ctx.world) * n),
           lambda: (C.fill(inp, 0), inp.mul_(mine)))
+elif MODE == "p2p":
+    # One received message, so check_regions sees a buffer with fewer regions than ranks.
+    # Must fail -- that is what proves the region count it derives is not zero, i.e. that
+    # the p2p check looks at something instead of passing vacuously.
+    n = C.size_for(2)
+    prv, nxt = (ctx.rank - 1) % ctx.world, (ctx.rank + 1) % ctx.world
+    inp = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    out = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    C.fill(inp, ctx.rank, nxt)
+
+    def op():
+        order = [lambda: dist.send(inp, nxt), lambda: dist.recv(out, prv)]
+        for f in order if ctx.rank < nxt else order[::-1]:
+            f()
+        if ctx.rank == 1:
+            out[7] += 1.0
+
+    C.run(ctx, op, lambda: C.check_regions(ctx, out, n, lambda i: (prv, ctx.rank), "message"))
 else:
     n = C.size_for(2 * ctx.world)
     inp = torch.empty(n * ctx.world, dtype=C.DTYPE, device=ctx.device)

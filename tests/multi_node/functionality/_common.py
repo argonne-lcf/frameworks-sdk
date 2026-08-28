@@ -163,17 +163,20 @@ def _first_diff(got, ref):
 
 
 def check_regions(ctx, out, spans, keyfn, label="region"):
-    """out is `world` contiguous regions; region r must be bit-identical to the data
+    """out is a run of contiguous regions; region r must be bit-identical to the data
     generated with keyfn(r). This is what catches misrouting. `spans` is a uniform
-    element count or a per-region list. Compares the first chunk of sampled regions."""
+    element count or a per-region list; the region count follows from it, so a buffer
+    with fewer regions than ranks (p2p) works too. Compares the first chunk of sampled
+    regions."""
     uniform = isinstance(spans, int)
     if not uniform:
         offs, acc = [], 0
         for s in spans:
             offs.append(acc)
             acc += s
-    step = max(1, ctx.world // NCHECK)
-    srcs = sorted({0, ctx.world - 1, ctx.rank, *range(0, ctx.world, step)})[:NCHECK]
+    nreg = out.numel() // spans if uniform else len(spans)
+    step = max(1, nreg // NCHECK)
+    srcs = sorted({0, nreg - 1, ctx.rank % nreg, *range(0, nreg, step)})[:NCHECK]
     for r in srcs:
         o, n = (r * spans, spans) if uniform else (offs[r], spans[r])
         if n == 0:
@@ -184,7 +187,7 @@ def check_regions(ctx, out, spans, keyfn, label="region"):
             i = _first_diff(got, ref)
             ctx.fail(f"{label} {r} mismatch at elem {i}: got {got[i].item()} want {ref[i].item()}")
             return False
-    ctx.log(f"local check ok ({len(srcs)}/{ctx.world} {label}s bitwise, isfinite ok)")
+    ctx.log(f"local check ok ({len(srcs)}/{nreg} {label}s bitwise, isfinite ok)")
     return True
 
 

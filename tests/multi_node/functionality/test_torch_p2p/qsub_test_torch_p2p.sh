@@ -7,7 +7,7 @@
 #PBS -l filesystems=home:tegu
 #PBS -k doe
 #PBS -j oe
-#PBS -N ARDC_A2AU
+#PBS -N ARDC_P2P
 
 export TZ='/usr/share/zoneinfo/US/Central'
 
@@ -37,16 +37,19 @@ export TEST_MEM_BUDGET_GB=${TEST_MEM_BUDGET_GB:-50}
 export TEST_ITERS=${TEST_ITERS:-10}
 export TEST_DTYPE=${TEST_DTYPE:-bfloat16}
 export TEST_TIMEOUT=${TEST_TIMEOUT:-600}
-# skew | incast
-export TEST_SKEW=${TEST_SKEW:-skew}
+
+# ring | ring_async | batch. Stride defaults to the ranks per node so every pipeline hop
+# crosses the fabric instead of staying on Xe Link; set it to 1 for adjacent neighbours.
+export TEST_P2P=${TEST_P2P:-ring}
+export TEST_P2P_STRIDE=${TEST_P2P_STRIDE:-${NRANKS_PER_NODE}}
 
 # The python resolves rank/world/local from PALS_* or torchrun's RANK/WORLD_SIZE,
 # so both launchers work. mpiexec is the real path; torchrun is the single-node fallback.
 if command -v mpiexec >/dev/null 2>&1 && [ -n "${PBS_NODEFILE}" ]; then
     mpiexec -n ${PALS_WORLD_SIZE} -ppn ${NRANKS_PER_NODE} -l --line-buffer ${CPU_AFFINITY} \
         -env MASTER_ADDR=$(hostname).hsn.cm.${MACHINE}.alcf.anl.gov \
-        -env MASTER_PORT=2345 python ${BENCH_DIR}/test_torch_alltoall_uneven.py
+        -env MASTER_PORT=2345 python ${BENCH_DIR}/test_torch_p2p.py
 else
     echo "no mpiexec / not under PBS -- torchrun fallback, SINGLE NODE ONLY (dev convenience)"
-    torchrun --nproc_per_node=${NRANKS_PER_NODE} --master_port=2345 ${BENCH_DIR}/test_torch_alltoall_uneven.py
+    torchrun --nproc_per_node=${NRANKS_PER_NODE} --master_port=2345 ${BENCH_DIR}/test_torch_p2p.py
 fi

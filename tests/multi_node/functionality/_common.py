@@ -245,7 +245,16 @@ def run(ctx, op, validate, prep=None, report=None):
         dist.all_reduce(flag, op=dist.ReduceOp.MAX)
     if report:
         report(times)
-    mean = sum(times[1:]) / max(1, len(times) - 1)
+    t = times[1:]
+    mean = sum(t) / max(1, len(t))
+    # oneCCL settles in stages, not just on call 1: solo all_reduce at 18.63GiB held ~1.48s
+    # for nine calls then dropped to 0.752s and stayed there (1.96x, 0.1% spread after).
+    # A window straddling that reports a mean describing neither side, and it looks clean.
+    if len(t) >= 6:
+        head, tail = sum(t[:3]) / 3, sum(t[-3:]) / 3
+        if abs(head - tail) > 0.15 * min(head, tail):
+            ctx.log(f"WARNING step: first 3 iters {head:.3f}s vs last 3 {tail:.3f}s "
+                    f"({head / tail:.2f}x) -- mean below straddles it, raise TEST_ITERS")
     ctx.log(f"mean {mean:.3f}s (excl iter 0)   RESULT {'FAIL' if flag.item() else 'PASS'}")
     dist.destroy_process_group()
     sys.exit(int(flag.item()))

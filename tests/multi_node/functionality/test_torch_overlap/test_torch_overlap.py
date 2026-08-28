@@ -37,6 +37,7 @@ def gemm(reps):
 
 
 def timed(fn):
+    prep()
     ctx.barrier()  # its trailing sync() drains prep, so only fn is timed
     t = time.perf_counter()
     fn()
@@ -44,9 +45,14 @@ def timed(fn):
     return time.perf_counter() - t
 
 
-# Solo baselines. Without both of them the overlapped time means nothing.
-prep()
-t_comm = timed(lambda: dist.all_reduce(buf))
+# Solo baselines. Without both of them the overlapped time means nothing -- and the comm
+# baseline has to discard its first call, which on a fresh buffer also pays fabric
+# registration and oneCCL scratch allocation. Measured at 18.63GiB on Sunspot that first
+# call was 19.240s against a steady state near 1.3s; a single-shot baseline inflated 14x
+# that way scores 0.93 overlap on a run that in fact overlapped nothing. Same rule as
+# run() dropping iter 0.
+t_first = timed(lambda: dist.all_reduce(buf))
+t_comm = sum(timed(lambda: dist.all_reduce(buf)) for _ in range(2)) / 2
 gemm(1)  # warm up XMX / autotune before the calibration measurement
 ctx.sync()
 # Rough is fine -- reps only has to make compute comparable to comm; t_gemm is measured.
@@ -61,7 +67,7 @@ t_gemm = timed(lambda: gemm(reps))
 ref = c.clone()
 
 ctx.log(f"buffer {C.human(buf.nbytes)} ({n} elems)  gemm {M}^3 x{reps}  "
-        f"comm {t_comm:.3f}s  compute {t_gemm:.3f}s solo")
+        f"comm {t_comm:.3f}s (first call {t_first:.3f}s)  compute {t_gemm:.3f}s solo")
 
 
 def op():
@@ -82,9 +88,12 @@ def validate():
 def report(times):
     both = sum(times[1:]) / max(1, len(times) - 1)
     serial = t_comm + t_gemm
-    # 1 = compute fully hidden behind comm, 0 = fully serialized, <0 = the two contend
+    # 1 = compute fully hidden behind comm, 0 = fully serialized, <0 = the two contend.
+    # "comm exposed" is the same result stated so it cannot be misread: how much of the
+    # collective you still pay for after the compute is accounted for.
     ctx.log(f"overlap {(serial - both) / min(t_comm, t_gemm):.2f}  "
-            f"(overlapped {both:.3f}s vs serial {serial:.3f}s)")
+            f"(overlapped {both:.3f}s vs serial {serial:.3f}s; "
+            f"comm exposed {both - t_gemm:.3f}s of {t_comm:.3f}s)")
 
 
 C.run(ctx, op, validate, prep, report)

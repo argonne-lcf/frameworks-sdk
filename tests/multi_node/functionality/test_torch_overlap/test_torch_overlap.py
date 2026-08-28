@@ -67,13 +67,17 @@ def timed(fn):
 
 
 # Solo baselines. Without both of them the overlapped time means nothing -- and the comm
-# baseline has to discard its first call, which on a fresh buffer also pays fabric
-# registration and oneCCL scratch allocation. Measured at 18.63GiB on Sunspot that first
-# call was 19.240s against a steady state near 1.3s; a single-shot baseline inflated 14x
-# that way scores 0.93 overlap on a run that in fact overlapped nothing. Same rule as
-# run() dropping iter 0.
-t_first = timed(coll)
-t_comm = sum(timed(coll) for _ in range(2)) / 2
+# baseline has to reach steady state first, which takes more than dropping call 1. On a
+# fresh buffer call 1 pays fabric registration and oneCCL scratch allocation (20.614s at
+# 18.63GiB on Sunspot, against ~1.4s after); a single-shot baseline inflated 14x that way
+# scores 0.93 overlap on a run that overlapped nothing. But settling continues past call 1:
+# all_reduce@18.63GiB stepped again near call 11, and a baseline taken from calls 2-3 would
+# credit that speedup to overlap. So profile until it flattens and take the tail -- and log
+# the whole profile, because the shape of the settling is itself the diagnostic.
+CALIB = int(os.environ.get("TEST_COMM_CALIB", 12))
+solo = [timed(coll) for _ in range(CALIB)]
+t_first, t_comm = solo[0], sum(solo[-3:]) / 3
+ctx.log("comm solo: " + " ".join(f"{t:.3f}" for t in solo))
 gemm(1)  # warm up XMX / autotune before the calibration measurement
 ctx.sync()
 # Rough is fine -- reps only has to make compute comparable to comm; t_gemm is measured.

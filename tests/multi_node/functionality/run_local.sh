@@ -55,13 +55,19 @@ pals)
     done
     ;;
 *)
+    # p2p repeats once per mode. gloo cannot reproduce the stream-ordering deadlock that
+    # ring_async_sym hits on the accelerator, so this only proves the modes dispatch.
     for t in $TESTS; do
-        if ( cd test_torch_$t && $TORCHRUN --nproc_per_node=$NP --master_port=$PORT \
-                test_torch_$t.py >/tmp/run_$t.log 2>&1 ); then
-            echo "ok    $t   $(grep -h 'local check' /tmp/run_$t.log | head -1)"
-        else
-            echo "FAIL  $t   see /tmp/run_$t.log"; rc=1
-        fi
+        for m in $([ $t = p2p ] && echo ring ring_async ring_async_sym ring_batch batch \
+                                || echo -); do
+            [ $m = - ] && lbl=$t || { lbl=$t.$m; export TEST_P2P=$m; }
+            if ( cd test_torch_$t && $TORCHRUN --nproc_per_node=$NP --master_port=$PORT \
+                    test_torch_$t.py >/tmp/run_$lbl.log 2>&1 ); then
+                echo "ok    $lbl   $(grep -h 'local check' /tmp/run_$lbl.log | head -1)"
+            else
+                echo "FAIL  $lbl   see /tmp/run_$lbl.log"; rc=1
+            fi
+        done
     done
     ;;
 esac

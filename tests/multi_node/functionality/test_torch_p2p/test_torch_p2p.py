@@ -7,7 +7,7 @@ import torch.distributed as dist
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import _common as C
 
-MODE = os.environ.get("TEST_P2P", "ring")  # ring | ring_async | batch
+MODE = os.environ.get("TEST_P2P", "ring")  # ring|ring_async|ring_async_sym|ring_batch|batch
 STRIDE = int(os.environ.get("TEST_P2P_STRIDE", "1"))
 
 ctx = C.Ctx(f"p2p/{MODE}")
@@ -15,7 +15,10 @@ ctx = C.Ctx(f"p2p/{MODE}")
 # ring and ring_async are pipeline-parallel traffic: one message to the next stage, one
 # from the previous. STRIDE places the neighbour -- 1 is adjacent, which on 2 nodes keeps
 # all but two hops on Xe Link, so set it to the ranks per node to make every hop cross the
-# fabric. batch posts world-1 sends and world-1 recvs in a single batch_isend_irecv: a
+# fabric. ring_batch runs that same pair through batch_isend_irecv, the documented way to
+# get a bidirectional exchange without the stream-ordering deadlock, and the only mode that
+# can plausibly use both directions at once. batch posts world-1 sends and world-1 recvs in
+# a single batch_isend_irecv: a
 # hand-rolled alltoall carrying the same traffic as test_torch_alltoall through a
 # different entry point, which is the axis every bug found so far has turned on.
 if MODE == "batch":
@@ -46,6 +49,21 @@ def ring():
 
 
 def ring_async():
+    # ring()'s ordering rule, and it is still required. isend/irecv enqueue on the device
+    # stream in program order, so a rank blocked in a recv never reaches the send sitting
+    # behind it; posting both before waiting does not change that. Ordering re-serialises
+    # the exchange, so this should land on ring()'s time, not half of it.
+    ops = [(dist.isend, inp, dsts[0]), (dist.irecv, out, srcs[0])]
+    if ctx.rank >= dsts[0]:
+        ops.reverse()
+    for r in [post(t, peer) for post, t, peer in ops]:
+        r.wait()
+
+
+def ring_async_sym():
+    # Every rank posts the recv first: the idiom that ought to be safe precisely because
+    # it is non-blocking. Deadlocks on a stream-ordered backend. Kept as a reproducer --
+    # gloo runs it fine, so it is only visible on the accelerator.
     for r in [dist.irecv(out, srcs[0]), dist.isend(inp, dsts[0])]:
         r.wait()
 
@@ -63,7 +81,8 @@ ctx.log(f"{MODE} stride={STRIDE} peers={len(dsts)}  "
 
 C.run(
     ctx,
-    {"ring": ring, "ring_async": ring_async, "batch": batch}[MODE],
+    {"ring": ring, "ring_async": ring_async, "ring_async_sym": ring_async_sym,
+     "ring_batch": batch, "batch": batch}[MODE],
     lambda: C.check_finite(ctx, out)
     and C.check_regions(ctx, out, n, lambda i: (srcs[i], ctx.rank), "message"),
     out.zero_,  # a recv that silently does nothing must not pass on the previous iteration

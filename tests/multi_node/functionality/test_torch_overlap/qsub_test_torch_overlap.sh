@@ -33,6 +33,9 @@ export ZE_AFFINITY_MASK="0,1,2,3,4,5,6,7,8,9,10,11"
 CPU_AFFINITY=$(bash ${BENCH_DIR}/get_cpu_bind_aurora.sh ${NRANKS_PER_NODE})
 
 # ~50 GB of the 64 GB tile; payload auto-sizes from the world size.
+# all_reduce | all_gather. all_gather is the control: no reduction kernels to contend with
+# the gemm, so it separates Xe-core contention from a serializing submission below PyTorch.
+export TEST_OVERLAP_COLL=${TEST_OVERLAP_COLL:-all_reduce}
 export TEST_MEM_BUDGET_GB=${TEST_MEM_BUDGET_GB:-50}
 export TEST_ITERS=${TEST_ITERS:-10}
 export TEST_DTYPE=${TEST_DTYPE:-bfloat16}

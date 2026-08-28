@@ -8,14 +8,31 @@ import torch.distributed as dist
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import _common as C
 
-ctx = C.Ctx("overlap_all_reduce")
+COLL = os.environ.get("TEST_OVERLAP_COLL", "all_reduce")  # all_reduce | all_gather
+
+ctx = C.Ctx(f"overlap_{COLL}")
 
 # all_reduce is the one collective bug 1 does not touch at any reachable size, so this
 # runs at full budget with CCL_OP_SYNC=0 and the async path intact -- which is the whole
 # point: forcing synchronous completion would defeat an overlap test.
-n = C.size_for(1)
-buf = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
-mine, total = C.scalars(ctx)
+#
+# all_gather is the control. ProcessGroupXCCL's async path is correctly plumbed (separate
+# stream when asyncOp, event-ordered against the compute stream, stream-blocking wait), so
+# a zero overlap score cannot be an API defect -- it is either the reduction kernels
+# competing with the gemm for Xe cores, or a serializing submission below PyTorch.
+# all_gather is pure data movement with no reduction kernels, which separates the two.
+if COLL == "all_gather":
+    n = C.size_for(ctx.world + 1)
+    src = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    buf = torch.empty(n * ctx.world, dtype=C.DTYPE, device=ctx.device)
+    # Renamed in torch 2.13; Sunspot's frameworks module may predate that.
+    gather = getattr(dist, "all_gather_single", None) or dist.all_gather_into_tensor
+    coll = lambda **kw: gather(buf, src, **kw)
+else:
+    n = C.size_for(1)
+    buf = torch.empty(n, dtype=C.DTYPE, device=ctx.device)
+    mine, total = C.scalars(ctx)
+    coll = lambda **kw: dist.all_reduce(buf, **kw)
 
 # Compute length is set by the repeat count, not the matrix size, so the operands stay
 # small next to the comm buffer. Default is small on CPU or run_local takes minutes.
@@ -26,8 +43,12 @@ c = torch.empty((M, M), dtype=C.DTYPE, device=ctx.device)
 
 
 def prep():
-    C.fill(buf, 0)
-    buf.mul_(mine)
+    if COLL == "all_gather":
+        C.fill(src, ctx.rank)
+        buf.zero_()  # a gather that silently no-ops must not pass on the last iteration
+    else:
+        C.fill(buf, 0)
+        buf.mul_(mine)
     c.zero_()  # so the gemm check catches compute that never ran, not just wrong results
 
 
@@ -51,8 +72,8 @@ def timed(fn):
 # call was 19.240s against a steady state near 1.3s; a single-shot baseline inflated 14x
 # that way scores 0.93 overlap on a run that in fact overlapped nothing. Same rule as
 # run() dropping iter 0.
-t_first = timed(lambda: dist.all_reduce(buf))
-t_comm = sum(timed(lambda: dist.all_reduce(buf)) for _ in range(2)) / 2
+t_first = timed(coll)
+t_comm = sum(timed(coll) for _ in range(2)) / 2
 gemm(1)  # warm up XMX / autotune before the calibration measurement
 ctx.sync()
 # Rough is fine -- reps only has to make compute comparable to comm; t_gemm is measured.
@@ -66,18 +87,20 @@ reps = int(r.item())
 t_gemm = timed(lambda: gemm(reps))
 ref = c.clone()
 
-ctx.log(f"buffer {C.human(buf.nbytes)} ({n} elems)  gemm {M}^3 x{reps}  "
+ctx.log(f"{COLL}  buffer {C.human(buf.nbytes)} ({buf.numel()} elems)  gemm {M}^3 x{reps}  "
         f"comm {t_comm:.3f}s (first call {t_first:.3f}s)  compute {t_gemm:.3f}s solo")
 
 
 def op():
-    w = dist.all_reduce(buf, async_op=True)
+    w = coll(async_op=True)
     gemm(reps)
     w.wait()
 
 
 def validate():
-    ok = C.check_finite(ctx, buf) and C.check_scaled(ctx, buf, total, 0)
+    ok = C.check_finite(ctx, buf) and (
+        C.check_regions(ctx, buf, n, lambda r: (r,), "shard") if COLL == "all_gather"
+        else C.check_scaled(ctx, buf, total, 0))
     if not torch.equal(c, ref):
         ctx.fail("gemm output differs from its solo reference")
         return False

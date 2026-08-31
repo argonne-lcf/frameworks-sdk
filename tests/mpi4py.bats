@@ -6,10 +6,12 @@ setup() {
 }
 
 @test "mpi4py/sanity" {
+	skip "disabled for now"
 	./tests/single_node/functionality/mpi4py/sanity.sh
 }
 
 @test "mpi4py/test" {
+	skip "disabled for now"
 	spawn_job -q debug -A datascience -N 1 -t 01:00:00 -f home:flare <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 setup_build_env

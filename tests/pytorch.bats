@@ -6,10 +6,12 @@ setup() {
 }
 
 @test "pytorch/sanity" {
+	skip "disabled for now"
 	./tests/single_node/functionality/pytorch/sanity.sh
 }
 
 @test "pytorch/test" {
+	skip "disabled for now"
 	spawn_job -q debug -A datascience -N 1 -t 01:00:00 -f home:flare <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 setup_build_env

@@ -23,6 +23,7 @@ default_queue() {
 spawn_job() {
 	QUEUE=""
 	FILESYSTEMS=""
+	PROJ_ALLOC="datascience" # override with `-A`
 	while getopts "q:A:N:t:f:" o; do
 		case "$o" in
 			q)

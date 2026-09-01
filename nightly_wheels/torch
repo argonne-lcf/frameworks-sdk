@@ -15,6 +15,7 @@ setup_uv_venv --group dev pip mkl-static mkl-include *.whl
 export C_INCLUDE_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/include:$C_INCLUDE_PATH"
 export CPLUS_INCLUDE_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/include:$CPLUS_INCLUDE_PATH"
 export LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LIBRARY_PATH"
+export LD_LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LD_LIBRARY_PATH"
 export Pti_DIR="$FRAMEWORKS_RUN_DIR/pti-gpu/lib/cmake/pti"
 
 # Patch OpenMP flag failure

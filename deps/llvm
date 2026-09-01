@@ -32,6 +32,7 @@ cmake -G Ninja -S llvm -B build \
   -DLLVM_TARGETS_TO_BUILD="Native;NVPTX;AMDGPU" \
   -DLLVM_INSTALL_UTILS=ON \
   -DCMAKE_INSTALL_PREFIX="$FRAMEWORKS_ROOT_DIR/llvm-$LLVM_HASH" \
+  -DCMAKE_INSTALL_LIBDIR="lib" \
   -DCMAKE_C_COMPILER="clang" \
   -DCMAKE_CXX_COMPILER="clang++" > configure_llvm.log 2>&1 || {
 	artifact_out "configure_llvm.log"

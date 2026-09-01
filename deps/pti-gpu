@@ -12,6 +12,7 @@ section_start "configure_pti-gpu[collapsed=true]"
 cd sdk
 cmake -S . \
 	-B build \
+	-DCMAKE_INSTALL_LIBDIR="lib" \
 	-DCMAKE_BUILD_TYPE=Release > configure_pti-gpu.log 2>&1 || {
 	artifact_out "configure_pti-gpu.log"
 	exit 1

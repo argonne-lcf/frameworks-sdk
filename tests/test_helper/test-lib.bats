@@ -1,5 +1,18 @@
+# Lustre `home` filesystem for the machine the tests run on.
+home_filesystem() {
+	case "$(hostname -f)" in
+	*aurora*) echo "home:flare" ;;
+	*sunspot*) echo "home:tegu" ;;
+	*)
+		echo "home_filesystem: unknown host $(hostname -f), pass -f to override" >&2
+		return 1
+		;;
+	esac
+}
+
 # Spawns a PBS job with the given arguments and stdin as the script input
 spawn_job() {
+	FILESYSTEMS=""
 	while getopts "q:A:N:t:f:" o; do
 		case "$o" in
 			q)
@@ -19,6 +32,13 @@ spawn_job() {
 				;;
 		esac
 	done
+
+	# Fall back to the host-specific Lustre filesystem unless `-f` was given
+	if [ -z "$FILESYSTEMS" ]; then
+		if ! FILESYSTEMS="$(home_filesystem)"; then
+			return 1
+		fi
+	fi
 
 	qsub -A "$PROJ_ALLOC" \
 		-N "$N_NODES" \

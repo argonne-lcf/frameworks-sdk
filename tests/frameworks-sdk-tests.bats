@@ -6,7 +6,7 @@ setup() {
 }
 
 @test "frameworks-sdk-tests/smoke" {
-	spawn_job -q debug -A datascience -N 1 -t 01:00:00 -f home:flare <<EOF
+	spawn_job -q debug -A datascience -N 1 -t 01:00:00 <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 setup_build_env
 

@@ -12,7 +12,7 @@ setup() {
 
 @test "pytorch/test" {
 	skip "disabled for now"
-	spawn_job -q debug -A datascience -N 1 -t 01:00:00 <<EOF
+	spawn_job -A datascience -N 1 -t 01:00:00 <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 setup_build_env
 

@@ -10,8 +10,18 @@ home_filesystem() {
 	esac
 }
 
+# Default PBS queue: `next-eval` on the Aurora eval system, else `debug`. Only
+# `CI_RUNNER_TAGS` identifies eval, since it shares hostnames with Aurora.
+default_queue() {
+	case "${CI_RUNNER_TAGS:-}" in
+	*aurora-eval*) echo "next-eval" ;;
+	*) echo "debug" ;;
+	esac
+}
+
 # Spawns a PBS job with the given arguments and stdin as the script input
 spawn_job() {
+	QUEUE=""
 	FILESYSTEMS=""
 	while getopts "q:A:N:t:f:" o; do
 		case "$o" in
@@ -33,7 +43,10 @@ spawn_job() {
 		esac
 	done
 
-	# Fall back to the host-specific Lustre filesystem unless `-f` was given
+	# Fall back to the defaults for the options that were not passed
+	if [ -z "$QUEUE" ]; then
+		QUEUE="$(default_queue)"
+	fi
 	if [ -z "$FILESYSTEMS" ]; then
 		if ! FILESYSTEMS="$(home_filesystem)"; then
 			return 1

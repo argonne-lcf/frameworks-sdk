@@ -8,6 +8,9 @@ setup_build_env
 
 artifact_in "torch-*.whl"
 
+# Load pti-gpu
+export LD_LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LD_LIBRARY_PATH"
+
 # Remove torch version requirement
 sed -i -e "/^torch==.*$/d" requirements/build/cuda.txt
 

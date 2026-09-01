@@ -7,6 +7,10 @@ gen_build_dir_with_git 'https://github.com/pytorch/vision'
 setup_build_env
 
 artifact_in "torch-*.whl"
+
+# Load pti-gpu
+export LD_LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LD_LIBRARY_PATH"
+
 setup_uv_venv -r pyproject.toml *.whl
 
 # 2) Build & Archive

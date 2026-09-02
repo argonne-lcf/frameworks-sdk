@@ -10,7 +10,7 @@ setup() {
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 setup_build_env
 
-gen_build_dir_with_git 'git@github.com:argonne-lcf/frameworks-sdk-tests.git' -b "$FRAMEWORKS_SDK_TESTS_VERSION"
+gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
 
 # Setup ephemeral uv venv
 artifact_in "torch-*.whl"

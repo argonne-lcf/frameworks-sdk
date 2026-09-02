@@ -1,0 +1,51 @@
+Requirements split report
+========================================================================
+list file   : /lus/flare/projects/datasets/softwares/26.181.0/wheelhouse_cleanup/RC4_all.list
+wheel dir   : /lus/flare/projects/datasets/softwares/26.181.0/wheelhouse_cleanup
+generated   : 2026-09-02 15:21:24
+
+list entries        : 273
+  -> no-wheel list  : 260
+  -> wheel list     : 13
+wheels in directory : 13
+
+MATCHED (name and version agree) (13)
+------------------------------------------------------------------------
+  dpctl==0.23.0.dev0+205.gb24f931fde  ->  dpctl-0.23.0.dev0+205.gb24f931fde-cp312-cp312-linux_x86_64.whl
+  dpnp==0.21.0.dev3+8.g987f2992697  ->  dpnp-0.21.0.dev3+8.g987f2992697-cp312-cp312-linux_x86_64.whl
+  h5py==3.16.0  ->  h5py-3.16.0-cp312-cp312-linux_x86_64.whl
+  mpi4py==4.1.2  ->  mpi4py-4.1.2-cp312-cp312-linux_x86_64.whl
+  scikit-learn-intelex==20260728.214749  ->  scikit_learn_intelex-20260728.214749-cp312-cp312-linux_x86_64.whl
+  torch==2.13.0a0+gitcf30153  ->  torch-2.13.0a0+gitcf30153-cp312-cp312-linux_x86_64.whl
+  torchao==0.17.0+git02105d46c  ->  torchao-0.17.0+git02105d46c-py3-none-any.whl
+  torchcomms==0.3.1  ->  torchcomms-0.3.1-cp312-cp312-linux_x86_64.whl
+  torchdata==0.11.0+377e64c  ->  torchdata-0.11.0+377e64c-py3-none-any.whl
+  torchvision==0.28.0+8fb8771  ->  torchvision-0.28.0+8fb8771-cp312-cp312-linux_x86_64.whl
+  triton-xpu==3.7.2  ->  triton_xpu-3.7.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  vllm==0.26.1.dev0+g568afb3a1.d20260803.xpu  ->  vllm-0.26.1.dev0+g568afb3a1.d20260803.xpu-cp312-cp312-linux_x86_64.whl
+  vllm-xpu-kernels==0.1.11.2.dev0+ga692986.d20260803  ->  vllm_xpu_kernels-0.1.11.2.dev0+ga692986.d20260803-cp312-cp312-linux_x86_64.whl
+
+VERSION MISMATCH -- wheel substituted anyway (0)
+------------------------------------------------------------------------
+  (none)
+
+DUPLICATE WHEELS -- ambiguous, resolve before install (0)
+------------------------------------------------------------------------
+  (none)
+
+WHEELS NOT REFERENCED BY THE LIST (0)
+------------------------------------------------------------------------
+  (none)
+
+MALFORMED WHEEL FILENAMES (0)
+------------------------------------------------------------------------
+  (none)
+
+FILENAME / METADATA NAME CONFLICTS (0)
+------------------------------------------------------------------------
+  (none)
+
+PASSED THROUGH VERBATIM (0)
+------------------------------------------------------------------------
+  (none)
+

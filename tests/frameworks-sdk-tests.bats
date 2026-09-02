@@ -22,7 +22,8 @@ setup_uv_venv *.whl
 # TODO: build dpctl, dpnp?
 uv pip install dpctl dpnp
 
-# Run smoke suite
-uv run --no-sync -- ./run_tests run --no-module --suite smoke
+# Run smoke suite; write results to the workspace (the tmpdir is deleted on
+# cleanup) so they can be converted to JUnit XML for GitLab CI ingestion
+uv run --no-sync -- ./run_tests run --no-module --suite smoke --results-dir "$PWD/results"
 EOF
 }

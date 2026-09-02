@@ -66,8 +66,10 @@ the pipeline.
 Additionally, the
 [frameworks-sdk-tests](https://github.com/argonne-lcf/frameworks-sdk-tests)
 validation suite is cloned at test time and its default `smoke` suite runs
-against the built wheels. On `aurora.alcf.anl.gov`, it can be run manually
-via:
+against the built wheels. Its `summary.json` results are converted to JUnit
+XML (`tools/frameworks-sdk-tests-junit.py`) and ingested by GitLab CI, so
+individual validation test results show up in the pipeline test report. On
+`aurora.alcf.anl.gov`, it can be run manually via:
 
 ```sh
 ./tests/bats/bin/bats tests/frameworks-sdk-tests.bats

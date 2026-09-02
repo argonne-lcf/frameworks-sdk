@@ -122,6 +122,12 @@ test:
     GIT_SUBMODULE_STRATEGY: recursive
   script:
     - ./tests/bats/bin/bats --report-formatter junit --output . tests/*.bats
+  after_script:
+    # Convert the frameworks-sdk-tests `results/*/summary.json` (written to
+    # the workspace by the `--results-dir` flag in the bats test) into a JUnit
+    # XML report; `after_script` runs on failure so failing results are still
+    # reported. The job status stays driven by the `bats` exit code.
+    - python3 tools/frameworks-sdk-tests-junit.py || true
   artifacts:
     when: always
     expire_in: never

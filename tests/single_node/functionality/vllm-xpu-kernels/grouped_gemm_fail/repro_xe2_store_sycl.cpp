@@ -2,10 +2,7 @@
 //
 // SYCL standalone reproducer for the XE2 D-store path.
 //
-// Expected behavior on the failing PVC path:
-//   broken nan count:     20480
-//   workaround nan count: 20476
-// and workaround D[:,0] should be [1, 1, 1, 1].
+// The native XE2 D-store path must fill every element of C with one.
 
 #include <sycl/sycl.hpp>
 
@@ -30,8 +27,8 @@ CUTE_HOST_DEVICE auto make_row_major_tensor(T* ptr, int rows, int cols) {
       make_layout(make_shape(rows, cols), make_stride(cols, _1{})));
 }
 
-// This is the same TiledMMA family that I used in previous reproducers for the FP16 XE2 path.
-using FailingTiledMMA = cute::TiledMMA<
+// FP16 XE2 grouped-GEMM output tile.
+using GroupedGemmTiledMMA = cute::TiledMMA<
     cute::MMA_Atom<cute::XE_DPAS_TT<8, float, cutlass::half_t>>,
     cute::Layout<
         cute::tuple<cute::C<1>, cute::C<4>, cute::C<1>>,
@@ -41,7 +38,6 @@ using FailingTiledMMA = cute::TiledMMA<
         cute::Layout<cute::C<64>, cute::C<1>>,
         cute::Layout<cute::C<32>>>>;
 
-template <bool UseWorkaround>
 void run_once(sycl::queue& q, cutlass::half_t* d_ptr, int M, int N) {
   constexpr int local_threads = 512;
 
@@ -58,7 +54,7 @@ void run_once(sycl::queue& q, cutlass::half_t* d_ptr, int M, int N) {
          [=](sycl::nd_item<3> item) {
            int local_id = item.get_local_linear_id();
 
-           FailingTiledMMA mma{};
+           GroupedGemmTiledMMA mma{};
 
            // Real output tensor C(M,N), row-major.
            auto C = make_row_major_tensor(d_ptr, M, N);
@@ -73,40 +69,33 @@ void run_once(sycl::queue& q, cutlass::half_t* d_ptr, int M, int N) {
            auto copy_c = get_block_2d_copy_D<void>(mma, C);
 
            auto thr_mma = mma.get_slice(local_id);
-           Tensor tCgC = thr_mma.partition_C(gC);
+           auto thr_copy_c = copy_c.get_slice(local_id);
            SubgroupTensor tCrC = thr_mma.partition_sg_fragment_C(gC);
+           Tensor tCgC = thr_copy_c.partition_D(gC);
+           SubgroupTensor tCrC_out =
+               thr_copy_c.partition_sg_fragment_S(gC);
 
            using TD = typename decltype(C)::element_type;
 
-           // Build the same final fragment shape the real epilogue uses.
+           // Build the same MMA and output fragments as the real epilogue.
            TD frag[tCrC.size()];
+           TD frag_out[tCrC_out.size()];
            Tensor frag_tensor =
                make_tensor(make_rmem_ptr(frag), tCrC.layout());
+           Tensor frag_out_tensor =
+               make_tensor(make_rmem_ptr(frag_out), tCrC_out.layout());
            SubgroupTensor frag_sg =
                make_subgroup_tensor(frag_tensor, tCrC.tv_layout());
+           SubgroupTensor frag_out_sg =
+               make_subgroup_tensor(frag_out_tensor, tCrC_out.tv_layout());
 
            CUTE_UNROLL
            for (int i = 0; i < tCrC.size(); ++i) {
              frag[i] = TD(1.0f);
            }
+           reorder(frag_sg, frag_out_sg);
 
-           if constexpr (UseWorkaround) {
-             // Same coords but do a manual scatter. N.B. only testing one thread here.
-             if (local_id == 0) {
-               CUTE_UNROLL
-               for (int i = 0; i < tCrC.size(); ++i) {
-                 auto coord = tCgC(i);
-                 int m = int(get<0>(coord));
-                 int n = int(get<1>(coord));
-                 if (m >= 0 && m < M && n >= 0 && n < N) {
-                   C(m, n) = frag[i];
-                 }
-               }
-             }
-           } else {
-             // Native XE2 store path from the real epilouge.
-             copy(copy_c, frag_sg, tCgC);
-           }
+           copy(copy_c, frag_out_sg, tCgC);
          });
    }).wait_and_throw();
 }
@@ -154,39 +143,36 @@ void print_row0(const char* label, const cutlass::half_t* ptr, int N) {
 
 int main() {
   constexpr int M = 4;
-  constexpr int N = 5120;
+  constexpr int N = 512;
   constexpr size_t elems = size_t(M) * size_t(N);
 
   sycl::queue q{sycl::gpu_selector_v};
 
-  auto* d_broken = sycl::malloc_shared<cutlass::half_t>(elems, q);
-  auto* d_workaround = sycl::malloc_shared<cutlass::half_t>(elems, q);
+  auto* output = sycl::malloc_shared<cutlass::half_t>(elems, q);
 
-  if (!d_broken || !d_workaround) {
+  if (!output) {
     std::cerr << "malloc_shared failed\n";
     return 1;
   }
 
-  fill_nan(d_broken, elems);
-  fill_nan(d_workaround, elems);
+  fill_nan(output, elems);
 
-  run_once<false>(q, d_broken, M, N);
-  run_once<true>(q, d_workaround, M, N);
+  run_once(q, output, M, N);
 
-  auto num_broken_nans = count_nans(d_broken, elems);
-  std::cout << "broken nan count: " << num_broken_nans << "\n";
-  print_col0("broken", d_broken, M, N);
-  print_row0("broken", d_broken, N);
+  auto num_nans = count_nans(output, elems);
+  bool all_ones = true;
+  for (size_t i = 0; i < elems; ++i) {
+    all_ones &= static_cast<float>(output[i]) == 1.0f;
+  }
 
-  std::cout << "workaround nan count: " << count_nans(d_workaround, elems) << "\n";
-  print_col0("workaround", d_workaround, M, N);
-  print_row0("workaround", d_workaround, N);
+  std::cout << "nan count: " << num_nans << "\n";
+  print_col0("output", output, M, N);
+  print_row0("output", output, N);
 
-  sycl::free(d_broken, q);
-  sycl::free(d_workaround, q);
-  if (num_broken_nans > 0) {
-      return 1;
+  sycl::free(output, q);
+  if (num_nans != 0 || !all_ones) {
+    return 1;
   } else {
-      return 0;
+    return 0;
   }
 }

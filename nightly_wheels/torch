@@ -799,6 +799,11 @@ export USE_CUDA=0
 export USE_ROCM=0
 export USE_MKLDNN=1
 export USE_MKL=1
+# Link the MKL installed into the build venv (pip `mkl-static`/ `mkl-include`)
+# instead of the system MKL
+export MKL_ROOT="$PWD/.venv"
+export MKLROOT="$PWD/.venv"
+export USE_STATIC_MKL=1
 export USE_CUDNN=0
 export USE_FBGEMM=1
 export USE_NNPACK=1

@@ -25,6 +25,7 @@ configured via the following environment variables.
 | `FRAMEWORKS_IPEX_VERSION` | IPEX version to build (`git` ref) | `xpu-main` |
 | `FRAMEWORKS_VLLM_VERSION` | vLLM version to build (`git` ref) | `main` |
 | `FRAMEWORKS_VLLM_XPU_KERNELS_VERSION` | vLLM XPU kernels version to build (`git` ref) | `main` |
+| `FRAMEWORKS_SDK_TESTS_VERSION` | Frameworks SDK validation tests version (`git` ref) | `main` |
 
 Then, run any of the scripts in `nightly_wheels`. The resultant builds/logs
 will then be in `$FRAMEWORKS_ROOT_DIR/$(whoami)`.
@@ -53,6 +54,25 @@ export CXX
 # 3) Build & Archive
 build_bdist_wheel
 artifact_out "<bar>-*.whl"
+```
+
+## Testing
+
+The `test` stage of the CI pipeline runs a
+[`bats`](https://github.com/bats-core/bats-core) harness (see `tests/`).
+Components are tested against an ephemeral `uv` venv of the wheels built by
+the pipeline.
+
+Additionally, the
+[frameworks-sdk-tests](https://github.com/argonne-lcf/frameworks-sdk-tests)
+validation suite is cloned at test time and its default `smoke` suite runs
+against the built wheels. Its `summary.json` results are converted to JUnit
+XML (`tools/frameworks-sdk-tests-junit.py`) and ingested by GitLab CI, so
+individual validation test results show up in the pipeline test report. On
+`aurora.alcf.anl.gov`, it can be run manually via:
+
+```sh
+./tests/bats/bin/bats tests/frameworks-sdk-tests.bats
 ```
 
 ## Wheels

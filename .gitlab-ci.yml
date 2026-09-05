@@ -33,6 +33,9 @@ spec:
     vllm_xpu_kernels_version:
       default: main
       description: vLLM XPU kernels version to build
+    sdk_tests_version:
+      default: main
+      description: Frameworks SDK validation tests version to test
 ---
 
 variables:
@@ -44,6 +47,7 @@ variables:
   FRAMEWORKS_IPEX_VERSION: $[[ inputs.ipex_version ]]
   FRAMEWORKS_VLLM_VERSION: $[[ inputs.vllm_version ]]
   FRAMEWORKS_VLLM_XPU_KERNELS_VERSION: $[[ inputs.vllm_xpu_kernels_version ]]
+  FRAMEWORKS_SDK_TESTS_VERSION: $[[ inputs.sdk_tests_version ]]
 
 include:
   - local: 'templates/common.yml'
@@ -110,3 +114,25 @@ pti-gpu:
     expire_in: never
     paths:
       - "*.log"
+
+test:
+  stage: test
+  extends: .common-runner
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - ./tests/bats/bin/bats --report-formatter junit --output . tests/*.bats
+  after_script:
+    # Convert the frameworks-sdk-tests `results/*/summary.json` (written to
+    # the workspace by the `--results-dir` flag in the bats test) into a JUnit
+    # XML report; `after_script` runs on failure so failing results are still
+    # reported. The job status stays driven by the `bats` exit code.
+    - python3 tools/frameworks-sdk-tests-junit.py || true
+  artifacts:
+    when: always
+    expire_in: never
+    paths:
+      - "*.xml"
+    reports:
+      junit:
+        - "*.xml"

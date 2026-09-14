@@ -58,21 +58,31 @@ include:
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: triton
-      needs: [llvm]
+      needs:
+        - job: llvm
+          artifacts: false
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: torch
-      needs: [triton, pti-gpu]
+      needs:
+        - job: triton
+          artifacts: false
+        - job: pti-gpu
+          artifacts: false
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: intel_extension_for_pytorch
-      needs: [torch]
+      needs:
+        - job: torch
+          artifacts: false
     rules:
       - if: '"$[[ inputs.ipex_version ]]" != ""'
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: oneccl_bind_pt
-      needs: [torch]
+      needs:
+        - job: torch
+          artifacts: false
     rules:
       - if: '"$[[ inputs.torchccl_version ]]" != ""'
   - local: 'templates/nightly-wheel.yml'
@@ -81,15 +91,21 @@ include:
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: vllm
-      needs: [torch]
+      needs:
+        - job: torch
+          artifacts: false
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: vllm_xpu_kernels
-      needs: [torch]
+      needs:
+        - job: torch
+          artifacts: false
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: torchvision
-      needs: [torch]
+      needs:
+        - job: torch
+          artifacts: false
 
 # Custom LLVM build for `triton-xpu`
 llvm:
@@ -120,16 +136,24 @@ frameworks-sdk:
   stage: build
   extends: .common-runner
   needs:
-    - torch
-    - torchvision
-    - triton
-    - mpi4py
-    - vllm
-    - vllm_xpu_kernels
+    - job: torch
+      artifacts: false
+    - job: torchvision
+      artifacts: false
+    - job: triton
+      artifacts: false
+    - job: mpi4py
+      artifacts: false
+    - job: vllm
+      artifacts: false
+    - job: vllm_xpu_kernels
+      artifacts: false
     - job: intel_extension_for_pytorch
       optional: true
+      artifacts: false
     - job: oneccl_bind_pt
       optional: true
+      artifacts: false
   script:
     - ./module/frameworks-sdk
   artifacts:
@@ -144,6 +168,7 @@ test:
   extends: .common-runner
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+  dependencies: []
   script:
     - ./tests/bats/bin/bats --report-formatter junit --output . tests/*.bats
   after_script:

@@ -114,7 +114,8 @@ cleanup_build_dir() {
 		popd || break
 	done
 
-	artifact_in "*.log" 2>/dev/null || true
+	find "$FRAMEWORKS_BUILD_DIR" -type f -name "*.log" -print0 |
+		xargs -0 cp -t . 2>/dev/null || true
 
 	rm -rf "${FRAMEWORKS_BUILD_DIR:?}"
 }

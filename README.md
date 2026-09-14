@@ -75,9 +75,11 @@ The `smoke` suite runs on every runner. The `harness`, `distributed`,
 `regression`, `workload`, and `benchmark` suites can run for hours (and some
 need multiple XPUs), so they submit to a queue with a longer walltime limit:
 `capacity` on Aurora (7 days), `next-eval` on the Aurora eval system (24
-hours), and `workq` on Sunspot. The `optional-imports` suite is not run here:
-it needs the science/LLM/communication packages from the `frameworks` module,
-which this pipeline does not build.
+hours), and `workq` on Sunspot. A separate `multi-node-collectives` case runs
+the two-node fabric tests from `scripts/run_torch_collective_pbs.sh` on the
+same queue, loading the same module. The `optional-imports` suite is not run
+here: it needs the science/LLM/communication packages from the `frameworks`
+module, which this pipeline does not build.
 
 On `aurora.alcf.anl.gov`, the suites can be run manually via:
 

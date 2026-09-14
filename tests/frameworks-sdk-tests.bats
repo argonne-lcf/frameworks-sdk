@@ -26,6 +26,28 @@ module use "\$FRAMEWORKS_RUN_DIR"
 EOF
 }
 
+# Runs the multi-node torch collective fabric tests in a PBS job against the
+# wheels built by this pipeline.
+run_multi_node_collectives() {
+	spawn_job "$@" <<EOF
+source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
+
+gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
+
+# Make the pipeline's modulefile visible to the launcher
+module use "\$FRAMEWORKS_RUN_DIR"
+
+status=0
+for test_case in allreduce allgather alltoall alltoall_uneven reduce_scatter overlap p2p subgroups; do
+	echo "=== multi-node collective: \$test_case ==="
+	if ! FRAMEWORKS_MODULE=frameworks-sdk TEST_CASE="\$test_case" bash ./scripts/run_torch_collective_pbs.sh; then
+		status=1
+	fi
+done
+exit "\$status"
+EOF
+}
+
 @test "frameworks-sdk-tests/smoke" {
 	run_frameworks_sdk_tests_suite smoke -N 1 -t 01:00:00
 }
@@ -48,4 +70,8 @@ EOF
 
 @test "frameworks-sdk-tests/benchmark" {
 	run_frameworks_sdk_tests_suite benchmark -q "$(long_queue)" -N 1 -t 04:00:00
+}
+
+@test "frameworks-sdk-tests/multi-node-collectives" {
+	run_multi_node_collectives -q "$(long_queue)" -N 2 -t 04:00:00
 }

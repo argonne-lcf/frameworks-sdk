@@ -59,17 +59,23 @@ artifact_out "<bar>-*.whl"
 ## Testing
 
 The `test` stage of the CI pipeline runs a
-[`bats`](https://github.com/bats-core/bats-core) harness (see `tests/`).
-Components are tested against an ephemeral `uv` venv of the wheels built by
-the pipeline.
-
-Additionally, the
+[`bats`](https://github.com/bats-core/bats-core) harness (see `tests/`) that
+clones the
 [frameworks-sdk-tests](https://github.com/argonne-lcf/frameworks-sdk-tests)
-validation suite is cloned at test time and its default `smoke` suite runs
-against the built wheels. Its `summary.json` results are converted to JUnit
+validation suite and runs it against an ephemeral `uv` venv of the wheels
+built by the pipeline. Its `summary.json` results are converted to JUnit
 XML (`tools/frameworks-sdk-tests-junit.py`) and ingested by GitLab CI, so
-individual validation test results show up in the pipeline test report. On
-`aurora.alcf.anl.gov`, it can be run manually via:
+individual validation test results show up in the pipeline test report.
+
+The `smoke` suite runs on every runner. The `harness`, `distributed`,
+`regression`, `workload`, and `benchmark` suites can run for hours (and some
+need multiple XPUs), so they submit to a queue with a longer walltime limit:
+`capacity` on Aurora (7 days), `next-eval` on the Aurora eval system (24
+hours), and `workq` on Sunspot. The `optional-imports` suite is not run here:
+it needs the science/LLM/communication packages from the `frameworks` module,
+which this pipeline does not build.
+
+On `aurora.alcf.anl.gov`, the suites can be run manually via:
 
 ```sh
 ./tests/bats/bin/bats tests/frameworks-sdk-tests.bats

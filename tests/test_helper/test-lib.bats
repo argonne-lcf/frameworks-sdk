@@ -19,6 +19,22 @@ default_queue() {
 	esac
 }
 
+# Queue for multi-hour suites: `next-eval` on the Aurora eval system (24 hrs),
+# `capacity` on Aurora (7 days), and `workq` on Sunspot.
+long_queue() {
+	case "${CI_RUNNER_TAGS:-}" in
+	*aurora-eval*)
+		echo "next-eval"
+		;;
+	*)
+		case "$(hostname -f)" in
+		*sunspot*) echo "workq" ;;
+		*) echo "capacity" ;;
+		esac
+		;;
+	esac
+}
+
 # Spawns a PBS job with the given arguments and stdin as the script input
 spawn_job() {
 	QUEUE=""

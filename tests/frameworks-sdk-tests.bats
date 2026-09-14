@@ -14,6 +14,7 @@ gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWOR
 
 # Setup ephemeral uv venv
 artifact_in "torch-*.whl"
+artifact_in "torchaudio-*.whl"
 artifact_in "torchvision-*.whl"
 artifact_in "mpi4py*.whl"
 setup_uv_venv *.whl

@@ -90,6 +90,10 @@ include:
     inputs:
       wheel: torchvision
       needs: [torch]
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: torchaudio
+      needs: [torch]
 
 # Custom LLVM build for `triton-xpu`
 llvm:

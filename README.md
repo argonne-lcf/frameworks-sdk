@@ -80,6 +80,8 @@ individual validation test results show up in the pipeline test report. On
 We have scripts to build the following wheels:
 - pytorch/
     - pytorch
+    - torchaudio
+    - torchvision
     - ao[^disabled]
     - torchtune[^disabled]
 - intel/

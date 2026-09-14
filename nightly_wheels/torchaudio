@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/pytorch/audio'
+setup_build_env
+
+artifact_in "torch-*.whl"
+
+# Load pti-gpu
+export LD_LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LD_LIBRARY_PATH"
+
+setup_uv_venv setuptools wheel *.whl
+
+# 2) Set torchaudio build configuration
+export USE_CUDA=0
+export USE_ROCM=0
+
+# 3) Build & Archive
+build_bdist_wheel
+artifact_out "torchaudio-*.whl"

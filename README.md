@@ -58,14 +58,18 @@ artifact_out "<bar>-*.whl"
 
 ## Testing
 
-The `test` stage of the CI pipeline runs a
+The build stage installs the wheels built by the pipeline (torch, torchvision,
+triton, mpi4py, vllm, vllm_xpu_kernels, and ipex/oneccl when built, plus
+dpctl/dpnp from PyPI) into a `uv` venv and writes an Lmod modulefile for it
+(`module/frameworks-sdk`), archived as a `frameworks-sdk.lua` artifact. The
+`test` stage runs a
 [`bats`](https://github.com/bats-core/bats-core) harness (see `tests/`) that
 clones the
 [frameworks-sdk-tests](https://github.com/argonne-lcf/frameworks-sdk-tests)
-validation suite and runs it against an ephemeral `uv` venv of the wheels
-built by the pipeline. Its `summary.json` results are converted to JUnit
-XML (`tools/frameworks-sdk-tests-junit.py`) and ingested by GitLab CI, so
-individual validation test results show up in the pipeline test report.
+validation suite, loads that module, and runs the suites. Its `summary.json`
+results are converted to JUnit XML (`tools/frameworks-sdk-tests-junit.py`) and
+ingested by GitLab CI, so individual validation test results show up in the
+pipeline test report.
 
 The `smoke` suite runs on every runner. The `harness`, `distributed`,
 `regression`, `workload`, and `benchmark` suites can run for hours (and some

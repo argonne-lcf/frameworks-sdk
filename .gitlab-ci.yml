@@ -115,6 +115,30 @@ pti-gpu:
     paths:
       - "*.log"
 
+# Lmod modulefile for the wheels built by this pipeline
+frameworks-sdk:
+  stage: build
+  extends: .common-runner
+  needs:
+    - torch
+    - torchvision
+    - triton
+    - mpi4py
+    - vllm
+    - vllm_xpu_kernels
+    - job: intel_extension_for_pytorch
+      optional: true
+    - job: oneccl_bind_pt
+      optional: true
+  script:
+    - ./module/frameworks-sdk
+  artifacts:
+    when: always
+    expire_in: never
+    paths:
+      - "*.lua"
+      - "*.log"
+
 test:
   stage: test
   extends: .common-runner

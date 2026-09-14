@@ -57,9 +57,11 @@ setup_build_env() {
 gen_build_dir_with_git() {
 	section_start "gen_build_dir_with_git[collapsed=true]"
 
-	pushd "$(mktemp -d)"
-	git clone --depth=1 --recurse-submodules "$@" .
+	FRAMEWORKS_BUILD_DIR="$(mktemp -d)"
+	pushd "$FRAMEWORKS_BUILD_DIR"
+	# Arm cleanup before cloning so a failed clone doesn't leak the tmpdir
 	trap cleanup_build_dir 0
+	git clone --depth=1 --recurse-submodules "$@" .
 
 	section_end "gen_build_dir_with_git[collapsed=true]"
 }
@@ -102,14 +104,18 @@ artifact_out() {
 
 # Cleans up the build tmpdir and archives built artifacts to `$PWD`.
 cleanup_build_dir() {
-	TMP_DIR="$(realpath .)"
-
 	# Always pull log files
 	artifact_out "build_bdist_wheel.log" 2>/dev/null || true
-	popd
+
+	# Return to the workspace dir even if the build failed while nested
+	# inside a `pushd`ed subdirectory
+	while [ "${#DIRSTACK[@]}" -gt 1 ]; do
+		popd || break
+	done
+
 	artifact_in "*.log" 2>/dev/null || true
 
-	rm -rf "$TMP_DIR"
+	rm -rf "${FRAMEWORKS_BUILD_DIR:?}"
 }
 
 # Start a collapsible section in the GitLab log.

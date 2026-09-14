@@ -59,14 +59,12 @@ artifact_out "<bar>-*.whl"
 ## Testing
 
 The `test` stage of the CI pipeline runs a
-[`bats`](https://github.com/bats-core/bats-core) harness (see `tests/`).
-Components are tested against an ephemeral `uv` venv of the wheels built by
-the pipeline.
-
-Additionally, the
+[`bats`](https://github.com/bats-core/bats-core) harness (see `tests/`) that
+clones the
 [frameworks-sdk-tests](https://github.com/argonne-lcf/frameworks-sdk-tests)
-validation suite is cloned at test time and its default `smoke` suite runs
-against the built wheels. Its `summary.json` results are converted to JUnit
+validation suite and runs its default `smoke` suite against an ephemeral `uv`
+venv of the wheels built by the pipeline. Its `summary.json` results are
+converted to JUnit
 XML (`tools/frameworks-sdk-tests-junit.py`) and ingested by GitLab CI, so
 individual validation test results show up in the pipeline test report. On
 `aurora.alcf.anl.gov`, it can be run manually via:

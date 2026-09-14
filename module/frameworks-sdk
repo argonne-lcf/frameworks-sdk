@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+MODULEFILE="$FRAMEWORKS_RUN_DIR/frameworks-sdk.lua"
+OVERRIDES="$FRAMEWORKS_RUN_DIR/overrides.txt"
+
+# 1) Pin every wheel built by the pipeline so packages that require a different
+# torch (vllm, ipex, ...) use ours instead; this is the equivalent of the torch
+# pins the nightly wheel scripts strip from their source requirements
+: > "$OVERRIDES"
+for wheel in "$FRAMEWORKS_RUN_DIR"/*.whl; do
+	base="$(basename "$wheel" .whl)"
+	rest="${base#*-}"
+	echo "${base%%-*}==${rest%%-*}" >> "$OVERRIDES"
+done
+
+# 2) Install the wheels into a venv
+setup_build_env
+
+pushd "$FRAMEWORKS_RUN_DIR"
+setup_uv_venv \
+	--overrides "$OVERRIDES" \
+	--find-links "$FRAMEWORKS_RUN_DIR" \
+	"$FRAMEWORKS_RUN_DIR"/*.whl
+
+# 'smoke' suite also checks dpctl/dpnp, which we do not build
+# TODO: build dpctl, dpnp?
+uv pip install dpctl dpnp
+uv pip freeze > freeze.log
+popd
+
+# 3) Generate an Lmod modulefile that activates the venv
+cat > "$MODULEFILE" <<EOF
+help([[
+Frameworks SDK wheels built by CI pipeline ${CI_PIPELINE_ID:-manual}.
+]])
+
+whatis("Name: frameworks-sdk")
+whatis("Version: ${CI_PIPELINE_ID:-manual}")
+whatis("Description: Frameworks SDK wheels built by the CI pipeline")
+
+prepend_path("PATH", "$FRAMEWORKS_RUN_DIR/.venv/bin")
+prepend_path("LD_LIBRARY_PATH", "$FRAMEWORKS_RUN_DIR/.venv/lib")
+prepend_path("LD_LIBRARY_PATH", "$FRAMEWORKS_RUN_DIR/pti-gpu/lib")
+setenv("VIRTUAL_ENV", "$FRAMEWORKS_RUN_DIR/.venv")
+setenv("ZE_FLAT_DEVICE_HIERARCHY", "FLAT")
+EOF
+
+# Keep the modulefile and package list as CI artifacts
+install -C -D "$MODULEFILE" frameworks-sdk.lua
+install -C -D "$FRAMEWORKS_RUN_DIR/freeze.log" frameworks-sdk-freeze.log

@@ -13,29 +13,16 @@ run_frameworks_sdk_tests_suite() {
 
 	spawn_job "$@" <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
-setup_build_env
 
 gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
 
-# Setup ephemeral uv venv
-artifact_in "torch-*.whl"
-artifact_in "torchvision-*.whl"
-artifact_in "mpi4py*.whl"
-setup_uv_venv *.whl
+# Make the pipeline's modulefile visible to the runner
+module use "\$FRAMEWORKS_RUN_DIR"
 
-# 'smoke' suite also checks dpctl/dpnp, which we do not build
-# TODO: build dpctl, dpnp?
-uv pip install dpctl dpnp
-
-# Load pti-gpu
-# The PyPI dpctl/dpnp wheels bundle a newer oneAPI/UR runtime than the loaded
-# module env provides, and LD_LIBRARY_PATH outranks their RUNPATH, so the
-# venv's bundled (self-consistent) runtime must come first.
-export LD_LIBRARY_PATH="\$PWD/.venv/lib:\$FRAMEWORKS_RUN_DIR/pti-gpu/lib:\$LD_LIBRARY_PATH"
-
-# Run the suite; write results to the workspace (the tmpdir is deleted on
-# cleanup) so they can be converted to JUnit XML for GitLab CI ingestion
-uv run --no-sync -- ./run_tests run --no-module --suite "$suite" --results-dir "$PWD/results"
+# Run the suite; the runner loads the module itself and records it in the
+# summary. Write results to the workspace (the tmpdir is deleted on cleanup)
+# so they can be converted to JUnit XML for GitLab CI ingestion
+./run_tests run --module frameworks-sdk --suite "$suite" --results-dir "$PWD/results"
 EOF
 }
 

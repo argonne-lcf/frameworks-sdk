@@ -27,6 +27,12 @@ setup_uv_venv \
 # 'smoke' suite also checks dpctl/dpnp, which we do not build
 # TODO: build dpctl, dpnp?
 uv pip install dpctl dpnp
+
+# Validation suites also declare these; install from PyPI for now so those
+# cases run instead of skipping
+uv pip install --overrides "$OVERRIDES" \
+	deepspeed pytest tensorboardX tensorflow transformers
+
 uv pip freeze > freeze.log
 popd
 

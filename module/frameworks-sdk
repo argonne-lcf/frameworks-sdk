@@ -47,6 +47,8 @@ whatis("Name: frameworks-sdk")
 whatis("Version: ${CI_PIPELINE_ID:-manual}")
 whatis("Description: Frameworks SDK wheels built by the CI pipeline")
 
+load("ninja")
+
 prepend_path("PATH", "$FRAMEWORKS_RUN_DIR/.venv/bin")
 prepend_path("LD_LIBRARY_PATH", "$FRAMEWORKS_RUN_DIR/.venv/lib")
 prepend_path("LD_LIBRARY_PATH", "$FRAMEWORKS_RUN_DIR/pti-gpu/lib")

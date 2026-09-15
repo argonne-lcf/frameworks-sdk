@@ -13,7 +13,7 @@ spec:
           default: '/lus/tegu/projects/datascience/frameworks-ci'
       description: Directory to store built artifacts
     python_version:
-      default: 3.12
+      default: '3.12'
       description: Python version to build against
     torch_version:
       default: main

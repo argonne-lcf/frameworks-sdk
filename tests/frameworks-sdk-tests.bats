@@ -19,6 +19,8 @@ gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWOR
 # Make the pipeline's modulefile visible to the runner
 module use "\$FRAMEWORKS_RUN_DIR/modulefiles"
 
+export PATH="\$FRAMEWORKS_RUN_DIR/.venv/bin:\$PATH"
+
 # Run the suite; the runner loads the module itself and records it in the
 # summary. Write results to the workspace (the tmpdir is deleted on cleanup)
 # so they can be converted to JUnit XML for GitLab CI ingestion

@@ -41,6 +41,8 @@ spawn_job() {
 	FILESYSTEMS=""
 	PROJ_ALLOC="datascience" # override with `-A`
 	N_NODES=1                # override with `-N`
+	TIME=""
+	OPTIND=1
 	while getopts "q:A:N:t:f:" o; do
 		case "$o" in
 			q)

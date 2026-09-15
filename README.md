@@ -22,6 +22,7 @@ configured via the following environment variables.
 | `FRAMEWORKS_TORCH_VERSION` | PyTorch version to build (`git` ref) | `v2.10.0` |
 | `FRAMEWORKS_TRITON_VERSION` | Triton-XPU version to build (`git` ref) | `main` |
 | `FRAMEWORKS_TORCHCCL_VERSION` | torchCCL version to build (`git` ref) | `master` |
+| `FRAMEWORKS_TORCHCOMMS_VERSION` | TorchComms version to build (`git` ref) | `main` |
 | `FRAMEWORKS_IPEX_VERSION` | IPEX version to build (`git` ref) | `xpu-main` |
 | `FRAMEWORKS_VLLM_VERSION` | vLLM version to build (`git` ref) | `main` |
 | `FRAMEWORKS_VLLM_XPU_KERNELS_VERSION` | vLLM XPU kernels version to build (`git` ref) | `main` |
@@ -59,9 +60,10 @@ artifact_out "<bar>-*.whl"
 ## Testing
 
 The build stage installs the wheels built by the pipeline (torch, torchvision,
-triton, mpi4py, vllm, vllm_xpu_kernels, and ipex/oneccl when built, plus
-dpctl/dpnp from PyPI) into a `uv` venv and writes an Lmod modulefile for it
-(`module/frameworks-sdk`), archived as a `frameworks-sdk.lua` artifact. The
+triton, mpi4py, vllm, vllm_xpu_kernels, torchcomms, and ipex/oneccl when
+built, plus dpctl/dpnp from PyPI) into a `uv` venv and writes an Lmod
+modulefile for it (`module/frameworks-sdk`), archived as a `frameworks-sdk.lua`
+artifact. The
 `test` stage runs a
 [`bats`](https://github.com/bats-core/bats-core) harness (see `tests/`) that
 clones the
@@ -102,6 +104,7 @@ We have scripts to build the following wheels:
     - vllm
     - vllm-xpu-kernels
 - mpi4py/mpi4py
+- meta-pytorch/torchcomms
 - h5py/h5py[^disabled]
 
 [^disabled]: not ran by CI pipeline

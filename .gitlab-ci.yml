@@ -24,6 +24,9 @@ spec:
     torchccl_version:
       default: ''
       description: torchCCL version to build
+    torchcomms_version:
+      default: main
+      description: TorchComms version to build
     ipex_version:
       default: ''
       description: IPEX version to build
@@ -44,6 +47,7 @@ variables:
   FRAMEWORKS_TORCH_VERSION: $[[ inputs.torch_version ]]
   FRAMEWORKS_TRITON_VERSION: $[[ inputs.triton_version ]]
   FRAMEWORKS_TORCHCCL_VERSION: $[[ inputs.torchccl_version ]]
+  FRAMEWORKS_TORCHCOMMS_VERSION: $[[ inputs.torchcomms_version ]]
   FRAMEWORKS_IPEX_VERSION: $[[ inputs.ipex_version ]]
   FRAMEWORKS_VLLM_VERSION: $[[ inputs.vllm_version ]]
   FRAMEWORKS_VLLM_XPU_KERNELS_VERSION: $[[ inputs.vllm_xpu_kernels_version ]]
@@ -85,6 +89,12 @@ include:
           artifacts: false
     rules:
       - if: '"$[[ inputs.torchccl_version ]]" != ""'
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: torchcomms
+      needs:
+        - job: torch
+          artifacts: false
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: mpi4py
@@ -153,6 +163,8 @@ frameworks-sdk:
       artifacts: false
     - job: oneccl_bind_pt
       optional: true
+      artifacts: false
+    - job: torchcomms
       artifacts: false
   script:
     - ./module/frameworks-sdk

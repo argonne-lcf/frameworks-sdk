@@ -34,7 +34,7 @@ run_multi_node_collectives() {
 	spawn_job "$@" <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 
-gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
+TMPDIR="\$FRAMEWORKS_RUN_DIR" gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
 
 # Make the pipeline's modulefile visible to the launcher
 module use "\$FRAMEWORKS_RUN_DIR/modulefiles"

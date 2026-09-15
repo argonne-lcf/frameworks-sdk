@@ -17,7 +17,7 @@ source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
 
 # Make the pipeline's modulefile visible to the runner
-module use "\$FRAMEWORKS_RUN_DIR"
+module use "\$FRAMEWORKS_RUN_DIR/modulefiles"
 
 # Run the suite; the runner loads the module itself and records it in the
 # summary. Write results to the workspace (the tmpdir is deleted on cleanup)
@@ -35,7 +35,7 @@ source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
 gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
 
 # Make the pipeline's modulefile visible to the launcher
-module use "\$FRAMEWORKS_RUN_DIR"
+module use "\$FRAMEWORKS_RUN_DIR/modulefiles"
 
 status=0
 for test_case in allreduce allgather alltoall alltoall_uneven reduce_scatter overlap p2p subgroups; do

@@ -63,11 +63,11 @@ EOF
 }
 
 @test "frameworks-sdk-tests/regression" {
-	run_frameworks_sdk_tests_suite regression -q "$(long_queue)" -N 1 -t 08:00:00
+	run_frameworks_sdk_tests_suite regression -q "$(long_queue)" -N 1 -t 04:00:00
 }
 
 @test "frameworks-sdk-tests/workload" {
-	run_frameworks_sdk_tests_suite workload -q "$(long_queue)" -N 1 -t 08:00:00
+	run_frameworks_sdk_tests_suite workload -q "$(long_queue)" -N 1 -t 04:00:00
 }
 
 @test "frameworks-sdk-tests/benchmark" {

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
+
+# 1) Pull source and gen build environment
+gen_build_dir_with_git 'https://github.com/meta-pytorch/torchcomms' -b "$FRAMEWORKS_TORCHCOMMS_VERSION"
+setup_build_env
+
+artifact_in "torch-*.whl"
+
+# Load pti-gpu
+export LD_LIBRARY_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/lib:$LD_LIBRARY_PATH"
+
+# The XCCL extension includes glog headers but, unlike gloo/nccl, doesn't link
+# glog::glog_headers; add it
+sed -i 's/^    fmt::fmt$/    glog::glog_headers\n    fmt::fmt/' comms/torchcomms/xccl/CMakeLists.txt
+
+# `pyyaml` and `setuptools` are build-only; the wheel installs against the
+# pipeline's torch
+setup_uv_venv -r requirements.txt pyyaml setuptools *.whl
+
+# 2) Set TorchComms build configuration (XCCL backend only)
+export USE_XCCL=ON
+export USE_NCCL=OFF
+export USE_NCCLX=OFF
+export USE_TRANSPORT=OFF
+
+# 3) Build & Archive
+build_bdist_wheel
+artifact_out "torchcomms-*.whl"

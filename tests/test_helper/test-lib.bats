@@ -85,8 +85,8 @@ spawn_job() {
 
 	# Dump output on completion
 	STATUS="$?"
-	cat outfile
-	cat errfile >&2
+	cat outfile 2>/dev/null || true
+	cat errfile >&2 2>/dev/null || true
 	rm -f outfile errfile
 	return "$STATUS"
 }

@@ -2,7 +2,7 @@
 
 source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../ci-lib.sh"
 
-MODULEFILE="$FRAMEWORKS_RUN_DIR/frameworks-sdk.lua"
+MODULEFILE="$FRAMEWORKS_RUN_DIR/modulefiles/frameworks-sdk.lua"
 OVERRIDES="$FRAMEWORKS_RUN_DIR/overrides.txt"
 
 # 1) Pin every wheel built by the pipeline so packages that require a different
@@ -31,6 +31,7 @@ uv pip freeze > freeze.log
 popd
 
 # 3) Generate an Lmod modulefile that activates the venv
+mkdir -p "$(dirname "$MODULEFILE")"
 cat > "$MODULEFILE" <<EOF
 help([[
 Frameworks SDK wheels built by CI pipeline ${CI_PIPELINE_ID:-manual}.

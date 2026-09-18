@@ -1,0 +1,16 @@
+{
+	"torch-p2p-ring-async-symmetric": "known issue: p2p ring async symmetric hangs on XPU and fails at ~125s",
+	"torch-p2p-ring-batch": "known issue: p2p ring batch hangs on XPU and fails at ~125s",
+	"torch-p2p-batch": "known issue: p2p batch hangs on XPU and fails at ~125s",
+	"regression-sdpa-gqa-stride": "known issue: SDPA GQA stride repro segfaults (exit -11)",
+	"regression-sdpa-non-gqa-baseline": "known issue: SDPA non-GQA baseline segfaults (exit -11)",
+	"regression-sdpa-tp-fsdp": "known issue: SDPA TP+FSDP repro fails (exit 1)",
+	"regression-deepspeed-fused-adam-jit": "known issue: DeepSpeed fused Adam JIT fails (exit 1)",
+	"regression-vllm-model-inspection": "known issue: vLLM model inspection fails (exit 1)",
+	"regression-xccl-allgather-empty-cache": "known issue: XCCL allgather empty-cache repro fails (exit 1)",
+	"workload-minigpt-deepspeed": "known issue: MiniGPT DeepSpeed workload fails (exit 1)",
+	"workload-moe-triton-xpu-pytest": "known issue: MoE Triton XPU pytest segfaults (exit -11)",
+	"workload-moe-train-xpu": "known issue: MoE train on XPU segfaults (exit -11)",
+	"workload-cosmictagger-tensorflow-synthetic": "known issue: CosmicTagger TensorFlow synthetic workload fails (exit 1)",
+	"workload-cosmictagger-network-parity": "known issue: CosmicTagger network parity check fails (exit 1)"
+}

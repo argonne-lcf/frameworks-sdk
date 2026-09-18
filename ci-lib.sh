@@ -33,6 +33,7 @@ setup_build_env() {
 
 	# configure `uv`
 	export UV_PYTHON_VERSION="$FRAMEWORKS_PYTHON_VERSION"
+	export UV_VENV_CLEAR=1
 	# User home disk quota fills up w/ caching if not on project allocation
 	export UV_CACHE_DIR="$FRAMEWORKS_ROOT_DIR/uv-cache"
 	# Lustre doesn't support hardlinks
@@ -113,7 +114,8 @@ cleanup_build_dir() {
 		popd || break
 	done
 
-	artifact_in "*.log" 2>/dev/null || true
+	find "$FRAMEWORKS_BUILD_DIR" -type f -name "*.log" -print0 |
+		xargs -0 cp -t . 2>/dev/null || true
 
 	rm -rf "${FRAMEWORKS_BUILD_DIR:?}"
 }

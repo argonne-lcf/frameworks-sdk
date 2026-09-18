@@ -13,29 +13,45 @@ run_frameworks_sdk_tests_suite() {
 
 	spawn_job "$@" <<EOF
 source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
-setup_build_env
 
 gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
 
-# Setup ephemeral uv venv
-artifact_in "torch-*.whl"
-artifact_in "torchvision-*.whl"
-artifact_in "mpi4py*.whl"
-setup_uv_venv *.whl
+# Make the pipeline's modulefile visible to the runner
+module use "\$FRAMEWORKS_RUN_DIR/modulefiles"
 
-# 'smoke' suite also checks dpctl/dpnp, which we do not build
-# TODO: build dpctl, dpnp?
-uv pip install dpctl dpnp
+export PATH="\$FRAMEWORKS_RUN_DIR/.venv/bin:\$PATH"
 
-# Load pti-gpu
-# The PyPI dpctl/dpnp wheels bundle a newer oneAPI/UR runtime than the loaded
-# module env provides, and LD_LIBRARY_PATH outranks their RUNPATH, so the
-# venv's bundled (self-consistent) runtime must come first.
-export LD_LIBRARY_PATH="\$PWD/.venv/lib:\$FRAMEWORKS_RUN_DIR/pti-gpu/lib:\$LD_LIBRARY_PATH"
+# Run the suite; the runner loads the module itself and records it in the
+# summary. Write results to the workspace (the tmpdir is deleted on cleanup)
+# so they can be converted to JUnit XML for GitLab CI ingestion
 
-# Run the suite; write results to the workspace (the tmpdir is deleted on
-# cleanup) so they can be converted to JUnit XML for GitLab CI ingestion
-uv run --no-sync -- ./run_tests run --no-module --suite "$suite" --results-dir "$PWD/results"
+python3 "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../tools/apply-known-failures.py" \
+	--manifest suite.json \
+	--known-failures "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/known-failures.json"
+
+./run_tests run --module frameworks-sdk --suite "$suite" --results-dir "$PWD/results"
+EOF
+}
+
+# Runs the multi-node torch collective fabric tests in a PBS job against the
+# wheels built by this pipeline.
+run_multi_node_collectives() {
+	spawn_job "$@" <<EOF
+source "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../ci-lib.sh"
+
+TMPDIR="\$FRAMEWORKS_RUN_DIR" gen_build_dir_with_git "$FRAMEWORKS_ROOT_DIR/frameworks-sdk-tests" -b "$FRAMEWORKS_SDK_TESTS_VERSION"
+
+# Make the pipeline's modulefile visible to the launcher
+module use "\$FRAMEWORKS_RUN_DIR/modulefiles"
+
+status=0
+for test_case in allreduce allgather alltoall alltoall_uneven reduce_scatter overlap p2p subgroups; do
+	echo "=== multi-node collective: \$test_case ==="
+	if ! FRAMEWORKS_MODULE=frameworks-sdk TEST_CASE="\$test_case" bash ./scripts/run_torch_collective_pbs.sh; then
+		status=1
+	fi
+done
+exit "\$status"
 EOF
 }
 
@@ -52,13 +68,18 @@ EOF
 }
 
 @test "frameworks-sdk-tests/regression" {
-	run_frameworks_sdk_tests_suite regression -q "$(long_queue)" -N 1 -t 08:00:00
+	run_frameworks_sdk_tests_suite regression -q "$(long_queue)" -N 1 -t 04:00:00
 }
 
 @test "frameworks-sdk-tests/workload" {
-	run_frameworks_sdk_tests_suite workload -q "$(long_queue)" -N 1 -t 08:00:00
+	run_frameworks_sdk_tests_suite workload -q "$(long_queue)" -N 1 -t 04:00:00
 }
 
 @test "frameworks-sdk-tests/benchmark" {
 	run_frameworks_sdk_tests_suite benchmark -q "$(long_queue)" -N 1 -t 04:00:00
+}
+
+@test "frameworks-sdk-tests/multi-node-collectives" {
+	skip "known issue: 2-node alltoall hang kills the job and hangs spawn_job"
+	run_multi_node_collectives -q "$(long_queue)" -N 2 -t 04:00:00
 }

@@ -40,6 +40,9 @@ spawn_job() {
 	QUEUE=""
 	FILESYSTEMS=""
 	PROJ_ALLOC="datascience" # override with `-A`
+	N_NODES=1                # override with `-N`
+	TIME=""
+	OPTIND=1
 	while getopts "q:A:N:t:f:" o; do
 		case "$o" in
 			q)
@@ -71,8 +74,8 @@ spawn_job() {
 	fi
 
 	qsub -A "$PROJ_ALLOC" \
-		-N "$N_NODES" \
 		-q "$QUEUE" \
+		-l select="$N_NODES" \
 		-l walltime="$TIME" \
 		-l filesystems="$FILESYSTEMS" \
 		-W block=true \
@@ -84,8 +87,8 @@ spawn_job() {
 
 	# Dump output on completion
 	STATUS="$?"
-	cat outfile
-	cat errfile >&2
+	cat outfile 2>/dev/null || true
+	cat errfile >&2 2>/dev/null || true
 	rm -f outfile errfile
 	return "$STATUS"
 }

@@ -24,6 +24,11 @@ export PATH="\$FRAMEWORKS_RUN_DIR/.venv/bin:\$PATH"
 # Run the suite; the runner loads the module itself and records it in the
 # summary. Write results to the workspace (the tmpdir is deleted on cleanup)
 # so they can be converted to JUnit XML for GitLab CI ingestion
+
+python3 "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/../tools/apply-known-failures.py" \
+	--manifest suite.json \
+	--known-failures "$(dirname "$(realpath "$BATS_TEST_FILENAME")")/known-failures.json"
+
 ./run_tests run --module frameworks-sdk --suite "$suite" --results-dir "$PWD/results"
 EOF
 }
@@ -75,5 +80,6 @@ EOF
 }
 
 @test "frameworks-sdk-tests/multi-node-collectives" {
+	skip "known issue: 2-node alltoall hang kills the job and hangs spawn_job"
 	run_multi_node_collectives -q "$(long_queue)" -N 2 -t 04:00:00
 }

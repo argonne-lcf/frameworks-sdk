@@ -48,6 +48,7 @@ whatis("Version: ${CI_PIPELINE_ID:-manual}")
 whatis("Description: Frameworks SDK wheels built by the CI pipeline")
 
 load("ninja")
+try_load("mpich")
 
 prepend_path("PATH", "$FRAMEWORKS_RUN_DIR/.venv/bin")
 prepend_path("LD_LIBRARY_PATH", "$FRAMEWORKS_RUN_DIR/.venv/lib")

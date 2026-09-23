@@ -64,7 +64,7 @@ git checkout FETCH_HEAD
 # compiler and keep SYCL-TLA enabled for it. Upstream only supports
 # GNU/MSVC hosts; `icpx` takes the GNU-style flag set.
 git am -3 <<'EOL'
-From 7899a469f6c37007c3e7529c4987dca980a650e2 Mon Sep 17 00:00:00 2001
+From 6113704cd71c8aa252fd5dbb209b40790f14c760 Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Mon, 14 Sep 2026 18:55:43 +0000
 Subject: [PATCH 1/3] cmake: accept `IntelLLVM` as host compiler
@@ -76,7 +76,7 @@ rejects, and it accepts the GNU-style flag set. Accept it alongside GNU.
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/cmake/BuildFlags.cmake b/cmake/BuildFlags.cmake
-index 4feced0b..f178ed15 100644
+index 028f953..994d7be 100644
 --- a/cmake/BuildFlags.cmake
 +++ b/cmake/BuildFlags.cmake
 @@ -31,7 +31,7 @@ function(CHECK_SYCL_FLAG FLAG VARIABLE_NAME)
@@ -97,7 +97,7 @@ index 4feced0b..f178ed15 100644
      list(APPEND SYCL_HOST_FLAGS -fPIC)
      list(APPEND SYCL_HOST_FLAGS -std=${CPP_STD})
      # These GCC warning options remain available to regular host compilation,
-@@ -147,7 +147,7 @@ macro(set_build_flags)
+@@ -151,7 +151,7 @@ macro(set_build_flags)
      list(APPEND SYCL_COMPILE_FLAGS /Qftz-)
      # Suppress warnings about dllexport.
      list(APPEND SYCL_COMPILE_FLAGS -Wno-ignored-attributes)
@@ -106,11 +106,8 @@ index 4feced0b..f178ed15 100644
      list(APPEND SYCL_COMPILE_FLAGS -std=${CPP_STD})
      list(APPEND SYCL_COMPILE_FLAGS -Wno-absolute-value)
      # -fma which we used before is an alias used for -ffp-contract=fast for compatibility reasons
--- 
-2.43.0
 
-
-From 4d08565dac7298998f82f7c3722160af6ded3bba Mon Sep 17 00:00:00 2001
+From 59a2059193d5b1bce65190d2e2e53ec84de05839 Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Mon, 14 Sep 2026 18:55:45 +0000
 Subject: [PATCH 2/3] cmake: keep SYCL-TLA enabled with `IntelLLVM` host
@@ -123,7 +120,7 @@ turns it off. Accept `IntelLLVM` alongside GNU in the gate condition.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f640a3ea..aa6c9da1 100644
+index f640a3e..aa6c9da 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -66,7 +66,7 @@ if(USE_XCCL)
@@ -135,11 +132,8 @@ index f640a3ea..aa6c9da1 100644
    set(USE_SYCLTLA OFF CACHE BOOL "Build with SYCL-TLA support" FORCE)
    message(WARNING "SYCL-TLA is not build as it only supports GCC >= 13.0 as CXX Compiler on Linux Platform!")
  elseif(CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
--- 
-2.43.0
 
-
-From f0ad749acefccc87377af4484f7da348119947f5 Mon Sep 17 00:00:00 2001
+From c0510987349ed3f5035c0e2db5b8d7fa7ae9be15 Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Mon, 14 Sep 2026 18:55:45 +0000
 Subject: [PATCH 3/3] cmake: exclude `-Qunused-arguments` from SYCL host
@@ -150,80 +144,56 @@ compiler is clang-family, but the icx driver rejects driver options
 forwarded via `-Xarch_host`. Add it to `SYCL_HOST_FLAGS_EXCLUDED_FROM_SYCL`
 so `run_sycl.cmake` drops it when compiling the host pass of SYCL sources.
 ---
- cmake/BuildFlags.cmake | 5 +++++
- 1 file changed, 5 insertions(+)
+ cmake/BuildFlags.cmake | 2 ++
+ 1 file changed, 2 insertions(+)
 
 diff --git a/cmake/BuildFlags.cmake b/cmake/BuildFlags.cmake
-index f178ed15..7b81aaf8 100644
+index 994d7be..cf3608b 100644
 --- a/cmake/BuildFlags.cmake
 +++ b/cmake/BuildFlags.cmake
-@@ -80,6 +80,11 @@ macro(set_build_flags)
+@@ -80,6 +80,8 @@ macro(set_build_flags)
        -Wno-stringop-overflow
        -Wno-dangling-reference
        -Wno-error=dangling-reference)
-+    # PyTorch appends this driver option to CMAKE_CXX_FLAGS for clang-family
-+    # host compilers, but icx rejects driver options forwarded via
-+    # `-Xarch_host`.
 +    list(APPEND SYCL_HOST_FLAGS_EXCLUDED_FROM_SYCL
 +      -Qunused-arguments)
-     # Excluding warnings which flood the compilation output
-     # TODO: fix warnings in the source code and then reenable them in compilation
-     list(APPEND SYCL_HOST_FLAGS -Wno-sign-compare)
--- 
-2.43.0
+     CHECK_SYCL_FLAG("-Wno-maybe-uninitialized;-Werror=unknown-warning-option" SUPPORTS_NO_MAYBE_UNINITIALIZED)
+     if(NOT SUPPORTS_NO_MAYBE_UNINITIALIZED)
+       list(APPEND SYCL_HOST_FLAGS_EXCLUDED_FROM_SYCL -Wno-maybe-uninitialized)
 EOL
 popd
 git am -3 <<'EOL'
-From 3d843079c8429068a41ec9647d6732ba2fe485f0 Mon Sep 17 00:00:00 2001
+From 5718ed7564a157a4e42215c0ce15b74d2b3b8862 Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
-Date: Mon, 27 Jul 2026 23:31:37 -0500
+Date: Fri, 18 Sep 2026 11:16:38 -0500
 Subject: [PATCH] caffe2: don't checkout existing `torch-xpu-ops`
 
 ---
- caffe2/CMakeLists.txt | 28 ++++++++++++++--------------
- 1 file changed, 14 insertions(+), 14 deletions(-)
+ caffe2/CMakeLists.txt | 11 -----------
+ 1 file changed, 11 deletions(-)
 
 diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index abe7f74a656..b92a065b251 100644
+index 42dcfc1..2bc64ae 100644
 --- a/caffe2/CMakeLists.txt
 +++ b/caffe2/CMakeLists.txt
-@@ -1199,20 +1199,20 @@ if(USE_XPU)
+@@ -1232,17 +1232,6 @@ if(USE_XPU)
      if(NOT _exitcode EQUAL 0)
        message(FATAL_ERROR "Fail to clone ${TORCH_XPU_OPS_REPO_URL}")
      endif()
 -  endif()
 -  execute_process(
--    COMMAND git fetch --quiet
+-    COMMAND git rev-parse HEAD
 -    WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
--    RESULT_VARIABLE _exitcode)
+-    OUTPUT_VARIABLE TORCH_XPU_OPS_CURRENT_COMMIT
+-    RESULT_VARIABLE _exitcode
+-    OUTPUT_STRIP_TRAILING_WHITESPACE)
 -  if(NOT _exitcode EQUAL 0)
--    message(FATAL_ERROR "Fail to fetch ${TORCH_XPU_OPS_REPO_URL}")
+-    set(TORCH_XPU_OPS_CURRENT_COMMIT "")
 -  endif()
--  execute_process(
--    COMMAND git checkout --quiet ${TORCH_XPU_OPS_COMMIT}
--    WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
--    RESULT_VARIABLE _exitcode)
--  if(NOT _exitcode EQUAL 0)
--    message(FATAL_ERROR "Fail to checkout ${TORCH_XPU_OPS_REPO_URL} to ${TORCH_XPU_OPS_COMMIT}")
-+    execute_process(
-+      COMMAND git fetch --quiet
-+      WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
-+      RESULT_VARIABLE _exitcode)
-+    if(NOT _exitcode EQUAL 0)
-+      message(FATAL_ERROR "Fail to fetch ${TORCH_XPU_OPS_REPO_URL}")
-+    endif()
-+    execute_process(
-+      COMMAND git checkout --quiet ${TORCH_XPU_OPS_COMMIT}
-+      WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
-+      RESULT_VARIABLE _exitcode)
-+    if(NOT _exitcode EQUAL 0)
-+      message(FATAL_ERROR "Fail to checkout ${TORCH_XPU_OPS_REPO_URL} to ${TORCH_XPU_OPS_COMMIT}")
-+    endif()
-   endif()
- 
-   set(TORCH_XPU_OPS_INCLUDE_DIRS
--- 
-2.50.1 (Apple Git-155)
+-  if(NOT TORCH_XPU_OPS_CURRENT_COMMIT STREQUAL TORCH_XPU_OPS_COMMIT)
+     execute_process(
+       COMMAND git fetch --quiet
+       WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
 EOL
 
 # 2) Set PyTorch build configuration

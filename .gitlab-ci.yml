@@ -189,6 +189,9 @@ test:
     # XML report; `after_script` runs on failure so failing results are still
     # reported. The job status stays driven by the `bats` exit code.
     - python3 tools/frameworks-sdk-tests-junit.py || true
+    # Publish to GitHub: a dispatch that renders the results as a check run
+    # on the pipeline's commit.
+    - python3 tools/github-results.py || true
   artifacts:
     when: always
     expire_in: never

@@ -1,0 +1,70 @@
+---
+name: test-report
+
+# Renders the ALCF GitLab test results on GitHub as a check run and artifacts.
+on:
+  repository_dispatch:
+    types:
+      - test-report
+
+permissions:
+  checks: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: |
+          python3 - <<'PY'
+          import base64, gzip, json, os, pathlib, urllib.request
+
+          run = json.loads(os.environ["PAYLOAD"])
+          totals = run["totals"]
+          failed = [t for t in run["tests"] if t["status"] == "fail"]
+          reports = run.get("reports") or {}
+
+          lines = ["{} passed, {} skipped, {} failed".format(
+              totals["pass"], totals["skip"], totals["fail"])]
+          if run.get("pipeline"):
+              lines += ["", "Pipeline: " + run["pipeline"]]
+          if failed:
+              lines += ["", "| test | result |", "| --- | --- |"]
+              lines += ["| `{}` | {} |".format(
+                  t["id"], t["reason"] or "failed") for t in failed]
+          lines += ["", "Reports: " + ", ".join(
+              "`{}`".format(name) for name in sorted(reports))]
+
+          payload = {
+              "name": "frameworks-sdk-tests",
+              "head_sha": run["sha"],
+              "status": "completed",
+              "conclusion": "failure" if failed else "success",
+              "output": {"title": "frameworks-sdk-tests",
+                         "summary": "\n".join(lines)},
+          }
+          request = urllib.request.Request(
+              "https://api.github.com/repos/{}/check-runs".format(
+                  os.environ["GITHUB_REPOSITORY"]),
+              data=json.dumps(payload).encode(),
+              method="POST",
+              headers={
+                  "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+                  "Accept": "application/vnd.github+json",
+              })
+          with urllib.request.urlopen(request) as response:
+              print("check run:", response.status)
+
+          for name, blob in reports.items():
+              path = pathlib.Path(name)
+              path.write_bytes(gzip.decompress(base64.b64decode(blob)))
+              print("wrote", name, path.stat().st_size, "bytes")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: junit-reports
+          path: "*.xml"
+          if-no-files-found: error

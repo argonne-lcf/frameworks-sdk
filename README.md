@@ -71,7 +71,7 @@ clones the
 validation suite, loads that module, and runs the suites. Its `summary.json`
 results are converted to JUnit XML (`tools/frameworks-sdk-tests-junit.py`) and
 ingested by GitLab CI, so individual validation test results show up in the
-pipeline test report.
+pipeline test report. They are also published to GitHub by `tools/github-results.py`.
 
 The `smoke` suite runs on every runner. The `harness`, `distributed`,
 `regression`, `workload`, and `benchmark` suites can run for hours (and some

@@ -28,6 +28,33 @@ API = "https://api.github.com"
 REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "argonne-lcf/frameworks-sdk")
 REPORTS = ("frameworks-sdk-tests.xml", "report.xml")
 STATUSES = ("pass", "fail", "skip")
+# repository_dispatch limit: 64 KB client_payload
+PAYLOAD_LIMIT = 63 * 1024
+
+
+def headers(token):
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
+def commit_exists(sha, token):
+    request = urllib.request.Request(  # noqa: S310
+        f"{API}/repos/{REPOSITORY}/commits/{sha}",
+        method="GET",
+        headers=headers(token),
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+            return response.status == 200
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return False
+        raise RuntimeError(f"GET commit {sha} failed: {error}") from error
+    except (urllib.error.URLError, ValueError) as error:
+        raise RuntimeError(f"GET commit {sha} failed: {error}") from error
 
 
 def api(path, token, payload):
@@ -39,11 +66,7 @@ def api(path, token, payload):
         url,
         data=json.dumps(payload).encode(),
         method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        },
+        headers=headers(token),
     )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
@@ -52,8 +75,13 @@ def api(path, token, payload):
         raise RuntimeError(f"POST {path} failed: {error}") from error
 
 
+def status_of(case):
+    """Status, treating unknown as fail."""
+    return case.get("status") if case.get("status") in STATUSES else "fail"
+
+
 def read_results():
-    """Return (tests, totals) from the runner's summary.json files."""
+    """Return (failures, totals) from the runner's summary.json files."""
     try:
         summaries = [
             json.loads(path.read_text(encoding="utf-8"))
@@ -61,20 +89,18 @@ def read_results():
         ]
     except (OSError, ValueError) as error:
         raise RuntimeError(f"cannot read results: {error}") from error
-    tests = [
+    cases = [(status_of(c), c) for s in summaries for c in s.get("tests") or []]
+    totals = {status: sum(1 for s, _ in cases if s == status) for status in STATUSES}
+    failures = [
         {
             "id": case.get("id") or "unknown",
-            "status": case.get("status") if case.get("status") in STATUSES else "fail",
+            "suite": (case.get("suite") or "").strip(),
             "reason": (case.get("reason") or "").strip(),
         }
-        for summary in summaries
-        for case in summary.get("tests") or []
+        for status, case in cases
+        if status == "fail"
     ]
-    totals = {
-        status: sum(1 for test in tests if test["status"] == status)
-        for status in STATUSES
-    }
-    return tests, totals
+    return failures, totals
 
 
 def read_reports():
@@ -86,6 +112,22 @@ def read_reports():
     }
 
 
+def dispatch_size(payload):
+    return len(json.dumps(payload).encode())
+
+
+def fit(payload, failures):
+    """Trim the payload to the limit, failures before reports."""
+    while payload["failures"] and dispatch_size(payload) >= PAYLOAD_LIMIT:
+        payload["failures"] = payload["failures"][:-1]
+    if len(payload["failures"]) < len(failures):
+        payload["omitted_failures"] = len(failures) - len(payload["failures"])
+    if dispatch_size(payload) >= PAYLOAD_LIMIT and payload["reports"]:
+        payload["omitted_reports"] = sorted(payload["reports"])
+        payload["reports"] = {}
+    return payload
+
+
 def main():
     token = os.environ.get("GITHUB_TOKEN", "")
     sha = os.environ.get("CI_COMMIT_SHA", "")
@@ -95,12 +137,26 @@ def main():
         return 0
 
     try:
-        tests, totals = read_results()
+        on_github = commit_exists(sha, token)
+    except RuntimeError as error:
+        # only a 404 blocks the dispatch
+        print(f"github-results: {error}; dispatching anyway", file=sys.stderr)
+        on_github = True
+    if not on_github:
+        print(
+            f"github-results: {sha} is not on {REPOSITORY}; nothing published",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        failures, totals = read_results()
         reports = read_reports()
     except (RuntimeError, OSError) as error:
         print(f"github-results: {error}", file=sys.stderr)
         return 1
-    if not tests:
+    # a green run has no failures but still has results
+    if not sum(totals.values()):
         print("github-results: no results to publish", file=sys.stderr)
         return 1
 
@@ -108,25 +164,32 @@ def main():
         f"github-results: {totals['pass']} passed, {totals['skip']} skipped, "
         f"{totals['fail']} failed"
     )
+    payload = fit(
+        {
+            "sha": sha,
+            "pipeline": pipeline,
+            "totals": totals,
+            "failures": failures,
+            "reports": reports,
+        },
+        failures,
+    )
+    if payload.get("omitted_failures"):
+        print(f"github-results: omitted {payload['omitted_failures']} failures", file=sys.stderr)
+    if payload.get("omitted_reports"):
+        print(
+            f"github-results: omitted reports {' '.join(payload['omitted_reports'])}",
+            file=sys.stderr,
+        )
     try:
         api(
             f"/repos/{REPOSITORY}/dispatches",
             token,
-            {
-                "event_type": "test-report",
-                "client_payload": {
-                    "sha": sha,
-                    "pipeline": pipeline,
-                    "totals": totals,
-                    "tests": tests,
-                    "reports": reports,
-                },
-            },
+            {"event_type": "test-report", "client_payload": payload},
         )
     except RuntimeError as error:
         print(f"github-results: {error}", file=sys.stderr)
         return 1
-
     return 0
 
 

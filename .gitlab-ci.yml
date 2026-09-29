@@ -116,6 +116,12 @@ include:
       needs:
         - job: torch
           artifacts: false
+  - local: 'templates/nightly-wheel.yml'
+    inputs:
+      wheel: torchaudio
+      needs:
+        - job: torch
+          artifacts: false
 
 # Custom LLVM build for `triton-xpu`
 llvm:
@@ -149,6 +155,8 @@ frameworks-sdk:
     - job: torch
       artifacts: false
     - job: torchvision
+      artifacts: false
+    - job: torchaudio
       artifacts: false
     - job: triton
       artifacts: false

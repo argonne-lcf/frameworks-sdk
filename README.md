@@ -60,8 +60,8 @@ artifact_out "<bar>-*.whl"
 ## Testing
 
 The build stage installs the wheels built by the pipeline (torch, torchvision,
-triton, mpi4py, vllm, vllm_xpu_kernels, torchcomms, and ipex/oneccl when
-built, plus dpctl/dpnp from PyPI) into a `uv` venv and writes an Lmod
+torchaudio, triton, mpi4py, vllm, vllm_xpu_kernels, torchcomms, and ipex/oneccl
+when built, plus dpctl/dpnp from PyPI) into a `uv` venv and writes an Lmod
 modulefile for it (`module/frameworks-sdk`), archived as a `frameworks-sdk.lua`
 artifact. The
 `test` stage runs a
@@ -94,6 +94,8 @@ On `aurora.alcf.anl.gov`, the suites can be run manually via:
 We have scripts to build the following wheels:
 - pytorch/
     - pytorch
+    - torchaudio
+    - torchvision
     - ao[^disabled]
     - torchtune[^disabled]
 - intel/

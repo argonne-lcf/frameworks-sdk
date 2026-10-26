@@ -9,7 +9,7 @@ setup_build_env
 artifact_in "triton-*.whl"
 
 # Must use uv-managed python for development headers
-setup_uv_venv --group dev pip mkl-static mkl-include *.whl
+setup_uv_venv --group dev pip *.whl
 
 # Use built pti-gpu
 export C_INCLUDE_PATH="$FRAMEWORKS_RUN_DIR/pti-gpu/include:$C_INCLUDE_PATH"
@@ -194,17 +194,23 @@ export USE_CUDA=0
 export USE_ROCM=0
 export USE_MKLDNN=1
 export USE_MKL=1
-# Link the MKL installed into the build venv (pip `mkl-static`/
-# `mkl-include`) instead of the system MKL, statically linking it into
-# `libtorch` so the wheel carries its own copy (the system MKL's sonames
-# change across Aurora software updates). `MKL_ROOT` wins the
-# `find_library` search inside `find_package(MKL)` (CMP0074) over the
-# oneAPI paths exported by the module environment.
+# Link the system MKL, statically linking it into `libtorch` so the wheel
+# carries its own copy (the system MKL's sonames change across Aurora
+# software updates). `MKL_ROOT` wins the `find_library` search inside
+# `find_package(MKL)` (CMP0074) over the oneAPI paths exported by the
+# module environment; aim it at the system oneAPI install.
 #
-# Do NOT redirect `MKLROOT` to the venv: torch-xpu-ops' FindONEMKL treats it
-# as authoritative and needs the oneMKL SYCL libraries (`libmkl_sycl_*.so`)
+# Do NOT install MKL from pip (`mkl-static`/`mkl-include`): their 2026.2.0
+# releases pull in `intel-cmplr-lib-ur`, whose `libur_loader.so.0` lands in
+# `.venv/lib` and shadows the system UR loader on the PyTorch link's
+# `-rpath-link` search path, failing every executable link with
+# `undefined reference to 'urKernelSetArg*@LIBUR_LOADER_0.12'` from
+# `libsycl.so.9`.
+#
+# Do NOT redirect `MKLROOT`: torch-xpu-ops' FindONEMKL treats it as
+# authoritative and needs the oneMKL SYCL libraries (`libmkl_sycl_*.so`)
 # that only the system oneAPI provides.
-export MKL_ROOT="$PWD/.venv"
+export MKL_ROOT="${MKLROOT:?oneAPI modules must export MKLROOT}"
 export USE_STATIC_MKL=1
 export USE_CUDNN=0
 export USE_FBGEMM=1

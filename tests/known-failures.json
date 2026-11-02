@@ -7,6 +7,7 @@
 	"regression-sdpa-tp-fsdp": "known issue: SDPA TP+FSDP repro fails (exit 1)",
 	"regression-deepspeed-fused-adam-jit": "known issue: DeepSpeed fused Adam JIT fails (exit 1)",
 	"regression-vllm-model-inspection": "known issue: vLLM model inspection fails (exit 1)",
+	"regression-vllm-xpu-kernels-grouped-gemm": "known issue: vLLM XPU kernels grouped GEMM repro fails (exit 1)",
 	"regression-xccl-allgather-empty-cache": "known issue: XCCL allgather empty-cache repro fails (exit 1)",
 	"workload-minigpt-deepspeed": "known issue: MiniGPT DeepSpeed workload fails (exit 1)",
 	"workload-moe-triton-xpu-pytest": "known issue: MoE Triton XPU pytest segfaults (exit -11)",

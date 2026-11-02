@@ -21,12 +21,10 @@ setup_build_env() {
 	# `cmake` and `ninja` are not in the system path
 	module load cmake ninja
 
-	case "$(hostname -f)" in
-	*"sunspot.alcf.anl.gov")
-		# test out new `igc`
-		module load intel_gpu_umd_aicoe/2026.06.19
-		;;
-	esac
+	# The AICOE GPU UMD stack ships a new `igc` that fixes the XE2 D-store
+	# codegen bug behind the vLLM XPU kernels grouped-GEMM repro; the stock
+	# system IGC miscompiles it, so load the new IGC before building
+	module load intel_gpu_umd_aicoe/2026.06.19
 
 	# global MAX_JOBS for {torch, ipex}
 	export MAX_JOBS=48

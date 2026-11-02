@@ -50,6 +50,11 @@ whatis("Description: Frameworks SDK wheels built by the CI pipeline")
 load("ninja")
 try_load("mpich")
 
+-- New IGC from the AICOE GPU UMD stack: the stock system IGC miscompiles
+-- the XE2 D-store path used by the vLLM XPU kernels grouped-GEMM kernel,
+-- so the suites (and SDK users) need it built and run with this stack
+load("intel_gpu_umd_aicoe/2026.06.19")
+
 prepend_path("PATH", "$FRAMEWORKS_RUN_DIR/.venv/bin")
 prepend_path("LD_LIBRARY_PATH", "$FRAMEWORKS_RUN_DIR/.venv/lib")
 prepend_path("LD_LIBRARY_PATH", "$FRAMEWORKS_RUN_DIR/pti-gpu/lib")

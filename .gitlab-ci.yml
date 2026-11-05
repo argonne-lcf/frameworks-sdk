@@ -39,6 +39,12 @@ spec:
     sdk_tests_version:
       default: main
       description: Frameworks SDK validation tests version to test
+    dpctl_version:
+      default: '0.22.1'
+      description: dpctl version to install for the validation suites
+    dpnp_version:
+      default: '0.20.0'
+      description: dpnp version to install for the validation suites
 ---
 
 variables:
@@ -52,6 +58,8 @@ variables:
   FRAMEWORKS_VLLM_VERSION: $[[ inputs.vllm_version ]]
   FRAMEWORKS_VLLM_XPU_KERNELS_VERSION: $[[ inputs.vllm_xpu_kernels_version ]]
   FRAMEWORKS_SDK_TESTS_VERSION: $[[ inputs.sdk_tests_version ]]
+  FRAMEWORKS_DPCTL_VERSION: $[[ inputs.dpctl_version ]]
+  FRAMEWORKS_DPNP_VERSION: $[[ inputs.dpnp_version ]]
 
 include:
   - local: 'templates/common.yml'

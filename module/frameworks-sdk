@@ -24,9 +24,14 @@ setup_uv_venv \
 	--find-links "$FRAMEWORKS_RUN_DIR" \
 	"$FRAMEWORKS_RUN_DIR"/*.whl
 
-# 'smoke' suite also checks dpctl/dpnp, which we do not build
-# TODO: build dpctl, dpnp?
-uv pip install dpctl dpnp
+# 'smoke' suite also checks dpctl/dpnp, which we do not build. Pin the
+# releases compiled against the host oneAPI stack and skip their dependencies:
+# the intel-cmplr-*/mkl wheels they pull would shadow the system runtimes the
+# pipeline wheels are built against
+# TODO: build dpctl, dpnp against the host oneAPI stack
+uv pip install --no-deps \
+	"dpctl==$FRAMEWORKS_DPCTL_VERSION" \
+	"dpnp==$FRAMEWORKS_DPNP_VERSION"
 
 # Validation suites also declare these; install from PyPI for now so those
 # cases run instead of skipping

@@ -60,7 +60,7 @@ artifact_out "<bar>-*.whl"
 ## Testing
 
 The build stage installs the wheels built by the pipeline (torch, torchvision,
-triton, mpi4py, vllm, vllm_xpu_kernels, torchcomms, and ipex/oneccl when
+triton, mpi4py, vllm, vllm_xpu_kernels, and ipex/oneccl when
 built, plus dpctl/dpnp from PyPI) into a `uv` venv and writes an Lmod
 modulefile for it (`module/frameworks-sdk`), archived as a `frameworks-sdk.lua`
 artifact. The
@@ -104,7 +104,6 @@ We have scripts to build the following wheels:
     - vllm
     - vllm-xpu-kernels
 - mpi4py/mpi4py
-- meta-pytorch/torchcomms
 - h5py/h5py[^disabled]
 
 [^disabled]: not ran by CI pipeline

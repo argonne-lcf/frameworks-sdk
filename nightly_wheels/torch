@@ -63,7 +63,10 @@ git checkout FETCH_HEAD
 # Patch in support for oneAPI: accept `IntelLLVM` (`icpx`) as the host
 # compiler and keep SYCL-TLA enabled for it. Upstream only supports
 # GNU/Clang/MSVC hosts; `icpx` takes the GNU-style flag set.
-git am -3 <<'EOL'
+# Apply without committing: PyTorch checks the repository HEAD against its pin
+# and fetches/checks out the pin again when `git am` adds local commits. Keeping
+# HEAD at the pin preserves these working-tree changes during CMake configure.
+git apply <<'EOL'
 From 2fc5941e9d6036c597bd9b95f548f671fdb6a38b Mon Sep 17 00:00:00 2001
 From: Ethan Wong <ewong@anl.gov>
 Date: Tue, 29 Sep 2026 15:12:42 -0500
@@ -154,39 +157,6 @@ index 7b31d7f..f4212d9 100644
 
 EOL
 popd
-git am -3 <<'EOL'
-From 5718ed7564a157a4e42215c0ce15b74d2b3b8862 Mon Sep 17 00:00:00 2001
-From: Ethan Wong <ewong@anl.gov>
-Date: Fri, 18 Sep 2026 11:16:38 -0500
-Subject: [PATCH] caffe2: don't checkout existing `torch-xpu-ops`
-
----
- caffe2/CMakeLists.txt | 11 -----------
- 1 file changed, 11 deletions(-)
-
-diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index 42dcfc1..2bc64ae 100644
---- a/caffe2/CMakeLists.txt
-+++ b/caffe2/CMakeLists.txt
-@@ -1232,17 +1232,6 @@ if(USE_XPU)
-     if(NOT _exitcode EQUAL 0)
-       message(FATAL_ERROR "Fail to clone ${TORCH_XPU_OPS_REPO_URL}")
-     endif()
--  endif()
--  execute_process(
--    COMMAND git rev-parse HEAD
--    WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
--    OUTPUT_VARIABLE TORCH_XPU_OPS_CURRENT_COMMIT
--    RESULT_VARIABLE _exitcode
--    OUTPUT_STRIP_TRAILING_WHITESPACE)
--  if(NOT _exitcode EQUAL 0)
--    set(TORCH_XPU_OPS_CURRENT_COMMIT "")
--  endif()
--  if(NOT TORCH_XPU_OPS_CURRENT_COMMIT STREQUAL TORCH_XPU_OPS_COMMIT)
-     execute_process(
-       COMMAND git fetch --quiet
-       WORKING_DIRECTORY ${TORCH_XPU_OPS_DIR}
-EOL
 
 # 2) Set PyTorch build configuration
 export WERROR=0

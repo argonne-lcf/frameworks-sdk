@@ -25,7 +25,7 @@ spec:
       default: ''
       description: torchCCL version to build
     torchcomms_version:
-      default: main
+      default: ''
       description: TorchComms version to build
     ipex_version:
       default: ''
@@ -103,6 +103,8 @@ include:
       needs:
         - job: torch
           artifacts: false
+    rules:
+      - if: '"$[[ inputs.torchcomms_version ]]" != ""'
   - local: 'templates/nightly-wheel.yml'
     inputs:
       wheel: mpi4py
@@ -173,6 +175,7 @@ frameworks-sdk:
       optional: true
       artifacts: false
     - job: torchcomms
+      optional: true
       artifacts: false
   script:
     - ./module/frameworks-sdk
